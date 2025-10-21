@@ -26,7 +26,8 @@ router.get("/tenant", requireRole(["tenant"]), (req, res) => {
       name: req.userData.name,
       role: req.userData.role,
       email: req.userData.email,
-      phone: req.userData.phone
+      phone: req.userData.phone,
+      initials: req.userData.initials
     },
     stats: {
       rentDue: req.userData.lease?.rentAmount || 0,
@@ -50,67 +51,15 @@ router.get("/tenant", requireRole(["tenant"]), (req, res) => {
   res.json(dashboardData);
 });
 
-router.get("/landlord", verifyToken(["landlord"]), async (req, res) => {
-  try {
-    const cacheKey = `landlord_${req.user.id}`;
+router.get("/landlord", requireRole(["landlord"]), (req, res) => {
+  const cacheKey = `landlord_${req.userData._id}`;
 
-    // Check cache first
-    if (dashboardCache.has(cacheKey)) {
-      const cachedData = dashboardCache.get(cacheKey);
-      if (Date.now() - cachedData.timestamp < 300000) { // 5 minutes cache
-        return res.json(cachedData.data);
-      }
+  // Check cache first
+  if (dashboardCache.has(cacheKey)) {
+    const cachedData = dashboardCache.get(cacheKey);
+    if (Date.now() - cachedData.timestamp < 300000) { // 5 minutes cache
+      return res.json(cachedData.data);
     }
-
-    // Get real property statistics
-    const totalProperties = await Property.countDocuments({ landlord: req.user.id });
-    const occupiedProperties = await Property.countDocuments({ 
-      landlord: req.user.id, 
-      status: "Occupied" 
-    });
-    
-    // Calculate monthly revenue from occupied properties
-    const occupiedProps = await Property.find({ 
-      landlord: req.user.id, 
-      status: "Occupied" 
-    });
-    const monthlyRevenue = occupiedProps.reduce((total, prop) => total + prop.rent, 0);
-    
-    const occupancyRate = totalProperties > 0 ? 
-      Math.round((occupiedProperties / totalProperties) * 100) : 0;
-
-    const dashboardData = {
-      message: `Welcome Landlord ${req.user.name}`,
-      user: {
-        id: req.user.id,
-        name: req.user.name,
-        role: req.user.role,
-        email: "landlord@example.com", // In real app, fetch from database
-        phone: "+91 98765 43210",
-        initials: req.user.name.split(' ').map(n => n[0]).join('').toUpperCase()
-      },
-      stats: {
-        totalProperties,
-        activeTenants: occupiedProperties,
-        monthlyRevenue,
-        occupancyRate
-      },
-      recentActivity: [
-        { type: "Payment", description: "Rent received from John Doe", amount: 1200 },
-        { type: "Maintenance", description: "Plumbing issue reported", status: "In Progress" }
-      ]
-    };
-
-    // Cache the response
-    dashboardCache.set(cacheKey, {
-      data: dashboardData,
-      timestamp: Date.now()
-    });
-
-    res.json(dashboardData);
-  } catch (error) {
-    console.error("Error fetching landlord dashboard:", error);
-    res.status(500).json({ message: "Server error" });
   }
 
   // Use real user data from database
@@ -191,8 +140,6 @@ router.get("/profile", async (req, res) => {
   }
 });
 
-export default router;
-
 // Update user profile endpoint
 router.put("/profile", async (req, res) => {
   try {
@@ -233,3 +180,5 @@ router.put("/profile", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+export default router;

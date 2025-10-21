@@ -1,109 +1,94 @@
 import mongoose from "mongoose";
 
-const PropertySchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true
+const PropertySchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    rent: { type: Number, required: true },
+    deposit: { type: Number, required: true },
+    type: { 
+      type: String, 
+      enum: ["Apartment", "Studio", "Villa", "House", "Room"], 
+      required: true 
+    },
+    bedrooms: { type: Number, required: true },
+    bathrooms: { type: Number, required: true },
+    area: { type: Number, required: true }, // in square feet
+    location: { type: String, required: true },
+    address: { type: String, required: true },
+    amenities: [{ type: String }],
+    images: [{ type: String }], // URLs to property images
+    landlord: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "User", 
+      required: true 
+    },
+    available: { type: Boolean, default: true },
+    availableFrom: { type: Date },
+    
+    // Additional property details
+    furnished: { 
+      type: String, 
+      enum: ["Fully Furnished", "Semi Furnished", "Unfurnished"],
+      default: "Unfurnished"
+    },
+    parking: { type: Boolean, default: false },
+    petFriendly: { type: Boolean, default: false },
+    
+    // Lease preferences
+    preferredTenantType: {
+      type: String,
+      enum: ["Family", "Bachelor", "Working Professional", "Student", "Any"],
+      default: "Any"
+    },
+    minimumLeasePeriod: { type: Number, default: 12 }, // in months
+    
+    // Property status
+    status: {
+      type: String,
+      enum: ["Available", "Rented", "Under Maintenance", "Inactive"],
+      default: "Available"
+    },
+    
+    // Current tenant (if rented)
+    currentTenant: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+    
+    // Lease information
+    leaseStartDate: { type: Date },
+    leaseEndDate: { type: Date },
+    
+    // Property verification
+    verified: { type: Boolean, default: false },
+    verificationDate: { type: Date },
+    
+    // Analytics
+    views: { type: Number, default: 0 },
+    inquiries: { type: Number, default: 0 },
   },
-  address: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  type: {
-    type: String,
-    required: true,
-    enum: ["Apartment", "House", "Condo", "Studio", "Townhouse", "Other"]
-  },
-  rent: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  status: {
-    type: String,
-    enum: ["Available", "Occupied", "Maintenance"],
-    default: "Available"
-  },
-  landlord: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
-  },
-  description: {
-    type: String,
-    trim: true
-  },
-  bedrooms: {
-    type: Number,
-    min: 0,
-    default: 1
-  },
-  bathrooms: {
-    type: Number,
-    min: 0,
-    default: 1
-  },
-  area: {
-    type: Number, // in square feet
-    min: 0
-  },
-  amenities: [{
-    type: String,
-    trim: true
-  }],
-  images: [{
-    type: String // URLs to property images
-  }],
-  currentTenant: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  },
-  leaseStartDate: {
-    type: Date
-  },
-  leaseEndDate: {
-    type: Date
-  },
-  deposit: {
-    type: Number,
-    min: 0,
-    default: 0
-  },
-  utilities: {
-    electricity: { type: Boolean, default: false },
-    water: { type: Boolean, default: false },
-    gas: { type: Boolean, default: false },
-    internet: { type: Boolean, default: false },
-    parking: { type: Boolean, default: false }
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+  { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
+);
+
+// Virtual for property age
+PropertySchema.virtual('propertyAge').get(function() {
+  return Math.floor((Date.now() - this.createdAt) / (1000 * 60 * 60 * 24));
 });
 
-// Update the updatedAt field before saving
-PropertySchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
+// Index for search functionality
+PropertySchema.index({ 
+  title: 'text', 
+  description: 'text', 
+  location: 'text',
+  address: 'text'
 });
 
-// Virtual for tenant count
-PropertySchema.virtual('tenantCount').get(function() {
-  return this.currentTenant ? 1 : 0;
-});
+// Index for filtering
+PropertySchema.index({ rent: 1, type: 1, location: 1, available: 1 });
 
-// Ensure virtual fields are serialized
-PropertySchema.set('toJSON', {
-  virtuals: true
-});
-
-const Property = mongoose.model("Property", PropertySchema);
-
-export default Property;
+export default mongoose.model("Property", PropertySchema);

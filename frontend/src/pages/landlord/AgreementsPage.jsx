@@ -52,30 +52,7 @@ const AgreementsPage = () => {
       setAgreements([]);
     }
   };
-    {
-      id: 3,
-      tenant: "Bob Johnson",
-      property: "789 Pine St, Apt 3C",
-      type: "Lease Renewal",
-      status: "Draft",
-      startDate: "2025-01-01",
-      endDate: "2025-12-31",
-      monthlyRent: 1700,
-      deposit: 3400,
-    },
-    {
-      id: 4,
-      tenant: "Alice Brown",
-      property: "321 Elm St, Unit 2B",
-      type: "Lease Agreement",
-      status: "Expired",
-      startDate: "2023-06-01",
-      endDate: "2024-05-31",
-      monthlyRent: 1650,
-      deposit: 3300,
-    },
-  ]);
-
+  
   const stats = {
     total: agreements.length,
     active: agreements.filter(a => a.status === "Active").length,

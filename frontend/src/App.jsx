@@ -28,6 +28,7 @@ const LandlordSettingsPage = lazy(() => import("./pages/landlord/SettingsPage"))
 // Lazy load tenant pages
 const TenantDashboard = lazy(() => import("./pages/tenant/DashboardPage"));
 const TenantProfilePage = lazy(() => import("./pages/tenant/ProfilePage"));
+const TenantPropertiesPage = lazy(() => import("./pages/tenant/PropertiesPage"));
 const TenantPaymentsPage = lazy(() => import("./pages/tenant/PaymentsPage"));
 const MaintenancePage = lazy(() => import("./pages/tenant/MaintenancePage"));
 const DocumentsPage = lazy(() => import("./pages/tenant/DocumentsPage"));
@@ -288,6 +289,15 @@ function App() {
                 <ProtectedRoute role="tenant">
                   <TenantLayout>
                     <TenantProfilePage />
+                  </TenantLayout>
+                </ProtectedRoute>
+              </Suspense>
+            } />
+            <Route path="/tenant/properties" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ProtectedRoute role="tenant">
+                  <TenantLayout>
+                    <TenantPropertiesPage />
                   </TenantLayout>
                 </ProtectedRoute>
               </Suspense>
