@@ -50,14 +50,9 @@ router.get("/tenant", requireRole(["tenant"]), (req, res) => {
   res.json(dashboardData);
 });
 
-<<<<<<< Updated upstream
-router.get("/landlord", requireRole(["landlord"]), (req, res) => {
-  const cacheKey = `landlord_${req.userData._id}`;
-=======
 router.get("/landlord", verifyToken(["landlord"]), async (req, res) => {
   try {
     const cacheKey = `landlord_${req.user.id}`;
->>>>>>> Stashed changes
 
     // Check cache first
     if (dashboardCache.has(cacheKey)) {
@@ -117,7 +112,6 @@ router.get("/landlord", verifyToken(["landlord"]), async (req, res) => {
     console.error("Error fetching landlord dashboard:", error);
     res.status(500).json({ message: "Server error" });
   }
-<<<<<<< Updated upstream
 
   // Use real user data from database
   const dashboardData = {
@@ -150,8 +144,6 @@ router.get("/landlord", verifyToken(["landlord"]), async (req, res) => {
   });
 
   res.json(dashboardData);
-=======
->>>>>>> Stashed changes
 });
 
 // User profile endpoint
