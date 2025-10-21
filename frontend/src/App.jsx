@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, CircularProgress, Box } from "@mui/material";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import AuthGuard from "./components/AuthGuard";
 
 // Lazy load dashboard components for better performance
 const TenantDashboard = lazy(() => import("./components/TenantDashboard"));
@@ -46,8 +47,16 @@ function App() {
       <Router>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/" element={
+              <AuthGuard>
+                <Login />
+              </AuthGuard>
+            } />
+            <Route path="/register" element={
+              <AuthGuard>
+                <Register />
+              </AuthGuard>
+            } />
             <Route path="/tenant" element={
               <Suspense fallback={<LoadingFallback />}>
                 <ProtectedRoute role="tenant">

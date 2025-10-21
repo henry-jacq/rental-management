@@ -4,16 +4,34 @@ import { Box, CircularProgress, Typography, Paper } from "@mui/material";
 
 const ProtectedRoute = ({ children, role }) => {
   const token = localStorage.getItem("token");
-  const userRole = token ? JSON.parse(atob(token.split(".")[1])).role : null;
+  
+  if (!token) {
+    return <Navigate to="/" replace />;
+  }
 
-  if(!token) return <Navigate to="/" />;
-  if(role && userRole !== role) return <Navigate to="/" />;
+  try {
+    const userRole = JSON.parse(atob(token.split(".")[1])).role;
+    
+    // If role is specified and user role doesn't match, redirect to appropriate dashboard
+    if (role && userRole !== role) {
+      if (userRole === "tenant") {
+        return <Navigate to="/tenant" replace />;
+      } else if (userRole === "landlord") {
+        return <Navigate to="/landlord" replace />;
+      }
+      return <Navigate to="/" replace />;
+    }
 
-  return (
-    <Box>
-      {children}
-    </Box>
-  );
+    return (
+      <Box>
+        {children}
+      </Box>
+    );
+  } catch (error) {
+    // If token is invalid, remove it and redirect to login
+    localStorage.removeItem("token");
+    return <Navigate to="/" replace />;
+  }
 };
 
 export default ProtectedRoute;
