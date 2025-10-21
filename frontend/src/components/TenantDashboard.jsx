@@ -27,6 +27,8 @@ import Build from "@mui/icons-material/Build";
 const TenantDashboard = memo(() => {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ rentDue: 0, maintenanceRequests: 0, leaseStatus: "" });
+  const [recentPayments, setRecentPayments] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,6 +38,8 @@ const TenantDashboard = memo(() => {
           headers: { Authorization: `Bearer ${token}` }
         });
         setMessage(res.data.message);
+        if (res.data?.stats) setStats(res.data.stats);
+        if (res.data?.recentPayments) setRecentPayments(res.data.recentPayments);
       } catch (err) {
         setMessage(err.response?.data?.msg || "Error fetching data");
       } finally {
@@ -51,20 +55,8 @@ const TenantDashboard = memo(() => {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static" color="primary">
-        <Toolbar>
-          <Home sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Tenant Dashboard
-          </Typography>
-          <IconButton color="inherit" onClick={handleLogout}>
-            <Logout />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Box>
+      <Container maxWidth="lg">
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Paper sx={{ p: 3 }}>
@@ -84,10 +76,10 @@ const TenantDashboard = memo(() => {
                   Rent Due
                 </Typography>
                 <Typography variant="h3" color="primary">
-                  $1,200
+                  ${stats.rentDue?.toLocaleString?.() || stats.rentDue}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Due in 5 days
+                  Due soon
                 </Typography>
               </CardContent>
               <CardActions>
@@ -105,7 +97,7 @@ const TenantDashboard = memo(() => {
                   Maintenance
                 </Typography>
                 <Typography variant="h3" color="primary">
-                  2
+                  {stats.maintenanceRequests}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Open Requests
@@ -125,9 +117,9 @@ const TenantDashboard = memo(() => {
                 <Typography variant="h6" gutterBottom>
                   Lease Status
                 </Typography>
-                <Chip label="Active" color="success" />
+                <Chip label={stats.leaseStatus || "Unknown"} color={stats.leaseStatus === "Active" ? "success" : "default"} />
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Expires: Dec 2024
+                  View your lease details
                 </Typography>
               </CardContent>
               <CardActions>
@@ -144,24 +136,23 @@ const TenantDashboard = memo(() => {
                 Recent Payments
               </Typography>
               <List>
-                <ListItem>
-                  <ListItemIcon>
-                    <Receipt />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Rent Payment"
-                    secondary="Paid on Nov 1, 2024 - $1,200"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <Receipt />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Rent Payment"
-                    secondary="Paid on Oct 1, 2024 - $1,200"
-                  />
-                </ListItem>
+                {recentPayments?.length ? (
+                  recentPayments.map((p, idx) => (
+                    <ListItem key={idx}>
+                      <ListItemIcon>
+                        <Receipt />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={`Rent Payment - $${p.amount}`}
+                        secondary={`${p.status} on ${p.date}`}
+                      />
+                    </ListItem>
+                  ))
+                ) : (
+                  <ListItem>
+                    <ListItemText primary="No recent payments" />
+                  </ListItem>
+                )}
               </List>
             </Paper>
           </Grid>

@@ -19,6 +19,8 @@ import Logout from "@mui/icons-material/Logout";
 const LandlordDashboard = memo(() => {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalProperties: 0, activeTenants: 0, monthlyRevenue: 0 });
+  const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,6 +30,8 @@ const LandlordDashboard = memo(() => {
           headers: { Authorization: `Bearer ${token}` }
         });
         setMessage(res.data.message);
+        if (res.data?.stats) setStats(res.data.stats);
+        if (res.data?.recentActivity) setRecentActivity(res.data.recentActivity);
       } catch (err) {
         setMessage(err.response?.data?.msg || "Error fetching data");
       } finally {
@@ -43,20 +47,8 @@ const LandlordDashboard = memo(() => {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static" color="primary">
-        <Toolbar>
-          <Home sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Landlord Dashboard
-          </Typography>
-          <IconButton color="inherit" onClick={handleLogout}>
-            <Logout />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Box>
+      <Container maxWidth="lg">
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Paper sx={{ p: 3 }}>
@@ -76,7 +68,7 @@ const LandlordDashboard = memo(() => {
                   Properties
                 </Typography>
                 <Typography variant="h3" color="primary">
-                  5
+                  {stats.totalProperties}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Total Properties
@@ -97,7 +89,7 @@ const LandlordDashboard = memo(() => {
                   Tenants
                 </Typography>
                 <Typography variant="h3" color="primary">
-                  12
+                  {stats.activeTenants}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Active Tenants
@@ -118,7 +110,7 @@ const LandlordDashboard = memo(() => {
                   Revenue
                 </Typography>
                 <Typography variant="h3" color="primary">
-                  $8,500
+                  ${stats.monthlyRevenue?.toLocaleString?.() || stats.monthlyRevenue}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Monthly Income
@@ -130,6 +122,23 @@ const LandlordDashboard = memo(() => {
                 </Button>
               </CardActions>
             </Card>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Recent Activity
+              </Typography>
+              {recentActivity?.length ? (
+                recentActivity.map((item, idx) => (
+                  <Typography key={idx} variant="body2" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                    {item.type}: {item.description}{item.amount ? ` - $${item.amount}` : item.status ? ` - ${item.status}` : ""}
+                  </Typography>
+                ))
+              ) : (
+                <Typography variant="body2" color="text.secondary">No recent activity</Typography>
+              )}
+            </Paper>
           </Grid>
 
           <Grid item xs={12}>
