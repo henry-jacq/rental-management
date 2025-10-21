@@ -11,9 +11,9 @@ const PropertySchema = new mongoose.Schema(
       enum: ["Apartment", "Studio", "Villa", "House", "Room"], 
       required: true 
     },
-    bedrooms: { type: Number, required: true },
-    bathrooms: { type: Number, required: true },
-    area: { type: Number, required: true }, // in square feet
+    bedrooms: { type: Number, required: true, min: 0 },
+    bathrooms: { type: Number, required: true, min: 0 },
+    area: { type: Number, required: true, min: 1 }, // in square feet
     location: { type: String, required: true },
     address: { type: String, required: true },
     amenities: [{ type: String }],
@@ -24,7 +24,7 @@ const PropertySchema = new mongoose.Schema(
       required: true 
     },
     available: { type: Boolean, default: true },
-    availableFrom: { type: Date },
+    availableFrom: { type: Date, default: Date.now },
     
     // Additional property details
     furnished: { 

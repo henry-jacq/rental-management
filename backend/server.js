@@ -9,6 +9,7 @@ import tenantsRoutes from "./routes/tenants.js";
 import maintenanceRoutes from "./routes/maintenance.js";
 import reportsRoutes from "./routes/reports.js";
 import propertiesRoutes from "./routes/properties.js";
+import landlordPropertiesRoutes from "./routes/landlordProperties.js";
 import { verifyToken } from "./middleware/auth.js";
 import { attachUserData } from "./middleware/userMiddleware.js";
 dotenv.config();
@@ -29,6 +30,7 @@ app.use("/api/tenants", verifyToken(), attachUserData, tenantsRoutes);
 app.use("/api/maintenance", verifyToken(), attachUserData, maintenanceRoutes);
 app.use("/api/reports", verifyToken(), attachUserData, reportsRoutes);
 app.use("/api/properties", verifyToken(), attachUserData, propertiesRoutes);
+app.use("/api/landlord/properties", verifyToken(), attachUserData, landlordPropertiesRoutes);
 
 // test route
 app.get("/", (req, res) => {

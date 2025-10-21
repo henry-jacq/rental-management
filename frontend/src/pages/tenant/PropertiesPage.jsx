@@ -268,7 +268,7 @@ const PropertiesPage = () => {
                 <CardMedia
                     component="img"
                     height="200"
-                    image={property.images[0]}
+                    image={`http://localhost:5000${property.images[0]}`}
                     alt={property.title}
                 />
                 <IconButton
@@ -481,7 +481,7 @@ const PropertiesPage = () => {
                         <DialogContent>
                             <Box sx={{ mb: 3 }}>
                                 <img
-                                    src={selectedProperty.images[0]}
+                                    src={`http://localhost:5000${selectedProperty.images[0]}`}
                                     alt={selectedProperty.title}
                                     style={{ width: "100%", height: "300px", objectFit: "cover", borderRadius: "8px" }}
                                 />

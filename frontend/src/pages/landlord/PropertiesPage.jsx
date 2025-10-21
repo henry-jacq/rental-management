@@ -14,13 +14,17 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Fab,
   Alert,
   CircularProgress,
   CardMedia,
-  ImageList,
-  ImageListItem,
-  ImageListItemBar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormControlLabel,
+  Checkbox,
+  InputAdornment,
+  Divider,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -30,6 +34,9 @@ import {
   LocationOn as LocationIcon,
   PhotoCamera as PhotoCameraIcon,
   Close as CloseIcon,
+  Bed as BedIcon,
+  Bathtub as BathtubIcon,
+  SquareFoot as SquareFootIcon,
 } from "@mui/icons-material";
 import axios from "axios";
 
@@ -38,17 +45,24 @@ const PropertiesPage = () => {
   const [open, setOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    type: "",
-    rent: "",
-    status: "Available",
+    title: "",
     description: "",
+    rent: "",
+    deposit: "",
+    type: "",
     bedrooms: 1,
     bathrooms: 1,
-    images: [],
+    area: "",
+    location: "",
+    amenities: [],
+    furnished: "Unfurnished",
+    parking: false,
+    petFriendly: false,
+    preferredTenantType: "Any",
+    minimumLeasePeriod: 12,
   });
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreview, setImagePreview] = useState([]);
@@ -62,7 +76,7 @@ const PropertiesPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/properties", {
+      const response = await axios.get("http://localhost:5000/api/landlord/properties", {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProperties(response.data);
@@ -79,28 +93,40 @@ const PropertiesPage = () => {
     setEditingProperty(property);
     if (property) {
       setFormData({
-        name: property.name,
-        address: property.address,
-        type: property.type,
-        rent: property.rent,
-        status: property.status,
+        title: property.title || "",
         description: property.description || "",
+        rent: property.rent || "",
+        deposit: property.deposit || "",
+        type: property.type || "",
         bedrooms: property.bedrooms || 1,
         bathrooms: property.bathrooms || 1,
-        images: property.images || [],
+        area: property.area || "",
+        location: property.location || "",
+        amenities: property.amenities || [],
+        furnished: property.furnished || "Unfurnished",
+        parking: property.parking || false,
+        petFriendly: property.petFriendly || false,
+        preferredTenantType: property.preferredTenantType || "Any",
+        minimumLeasePeriod: property.minimumLeasePeriod || 12,
       });
       setImagePreview(property.images || []);
     } else {
       setFormData({
-        name: "",
-        address: "",
-        type: "",
-        rent: "",
-        status: "Available",
+        title: "",
         description: "",
+        rent: "",
+        deposit: "",
+        type: "",
         bedrooms: 1,
         bathrooms: 1,
-        images: [],
+        area: "",
+        location: "",
+        amenities: [],
+        furnished: "Unfurnished",
+        parking: false,
+        petFriendly: false,
+        preferredTenantType: "Any",
+        minimumLeasePeriod: 12,
       });
       setImagePreview([]);
     }
@@ -111,19 +137,9 @@ const PropertiesPage = () => {
   const handleClose = () => {
     setOpen(false);
     setEditingProperty(null);
-    setFormData({
-      name: "",
-      address: "",
-      type: "",
-      rent: "",
-      status: "Available",
-      description: "",
-      bedrooms: 1,
-      bathrooms: 1,
-      images: [],
-    });
     setSelectedImages([]);
     setImagePreview([]);
+    setError("");
   };
 
   const handleImageSelect = (event) => {
@@ -139,20 +155,19 @@ const PropertiesPage = () => {
     const newPreviews = imagePreview.filter((_, i) => i !== index);
     setImagePreview(newPreviews);
     
-    if (index < formData.images.length) {
-      // Remove from existing images
-      const newImages = formData.images.filter((_, i) => i !== index);
-      setFormData({ ...formData, images: newImages });
+    if (editingProperty && index < (editingProperty.images?.length || 0)) {
+      // This is an existing image - we'll handle removal on server
+      // For now, just remove from preview
     } else {
-      // Remove from selected images
-      const selectedIndex = index - formData.images.length;
+      // This is a newly selected image
+      const selectedIndex = index - (editingProperty?.images?.length || 0);
       const newSelected = selectedImages.filter((_, i) => i !== selectedIndex);
       setSelectedImages(newSelected);
     }
   };
 
-  const uploadImages = async () => {
-    if (selectedImages.length === 0) return [];
+  const uploadImages = async (propertyId) => {
+    if (selectedImages.length === 0) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -162,8 +177,8 @@ const PropertiesPage = () => {
         formDataUpload.append('images', image);
       });
 
-      const response = await axios.post(
-        "http://localhost:5000/api/properties/upload-images",
+      await axios.post(
+        `http://localhost:5000/api/landlord/properties/${propertyId}/images`,
         formDataUpload,
         {
           headers: {
@@ -172,8 +187,6 @@ const PropertiesPage = () => {
           }
         }
       );
-
-      return response.data.images;
     } catch (error) {
       console.error("Error uploading images:", error);
       throw new Error("Failed to upload images");
@@ -182,32 +195,33 @@ const PropertiesPage = () => {
 
   const handleSubmit = async () => {
     try {
+      setSubmitting(true);
       const token = localStorage.getItem("token");
-      
-      // Upload new images first
-      let uploadedImages = [];
-      if (selectedImages.length > 0) {
-        uploadedImages = await uploadImages();
-      }
-
-      // Combine existing and new images
-      const allImages = [...(formData.images || []), ...uploadedImages];
-      const propertyData = { ...formData, images: allImages };
       
       if (editingProperty) {
         // Update existing property
-        await axios.put(
-          `http://localhost:5000/api/properties/${editingProperty._id}`,
-          propertyData,
+        const response = await axios.put(
+          `http://localhost:5000/api/landlord/properties/${editingProperty._id}`,
+          formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        
+        // Upload new images if any
+        if (selectedImages.length > 0) {
+          await uploadImages(editingProperty._id);
+        }
       } else {
         // Create new property
-        await axios.post(
-          "http://localhost:5000/api/properties",
-          propertyData,
+        const response = await axios.post(
+          "http://localhost:5000/api/landlord/properties",
+          formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        
+        // Upload images if any
+        if (selectedImages.length > 0) {
+          await uploadImages(response.data._id);
+        }
       }
       
       // Refresh properties list
@@ -216,7 +230,9 @@ const PropertiesPage = () => {
       setError("");
     } catch (error) {
       console.error("Error saving property:", error);
-      setError("Failed to save property");
+      setError("Failed to save property. Please check all required fields.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -227,7 +243,7 @@ const PropertiesPage = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/properties/${id}`, {
+      await axios.delete(`http://localhost:5000/api/landlord/properties/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -240,6 +256,19 @@ const PropertiesPage = () => {
     }
   };
 
+  const handleAmenityChange = (amenity) => {
+    const newAmenities = formData.amenities.includes(amenity)
+      ? formData.amenities.filter(a => a !== amenity)
+      : [...formData.amenities, amenity];
+    setFormData({ ...formData, amenities: newAmenities });
+  };
+
+  const commonAmenities = [
+    "Parking", "Gym", "Swimming Pool", "Security", "Power Backup",
+    "Water Supply", "Internet", "AC", "Furnished", "Garden",
+    "Balcony", "Elevator", "CCTV", "Playground", "Club House", "Pet Friendly"
+  ];
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -250,14 +279,21 @@ const PropertiesPage = () => {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Properties Management
-        </Typography>
+      {/* Header */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+            Properties Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Manage your rental properties and track their status.
+          </Typography>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpen()}
+          size="large"
         >
           Add Property
         </Button>
@@ -269,265 +305,385 @@ const PropertiesPage = () => {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
-        {properties.map((property) => (
-          <Grid item xs={12} sm={6} md={4} key={property._id}>
-            <Card sx={{ height: "100%" }}>
-              {property.images && property.images.length > 0 && (
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={`http://localhost:5000${property.images[0]}`}
-                  alt={property.name}
-                  sx={{ objectFit: "cover" }}
-                />
-              )}
-              <CardContent>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <HomeIcon sx={{ mr: 1, color: "primary.main" }} />
-                  <Typography variant="h6" component="div">
-                    {property.name}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                  <LocationIcon sx={{ mr: 1, fontSize: 16, color: "text.secondary" }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {property.address}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  Type: {property.type}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  Rent: ₹{property.rent}/month
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  Bedrooms: {property.bedrooms} | Bathrooms: {property.bathrooms}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 2 }}>
-                  Tenant: {property.currentTenant ? "Occupied" : "None"}
-                </Typography>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Chip
-                    label={property.status}
-                    color={
-                      property.status === "Available" ? "success" : 
-                      property.status === "Occupied" ? "primary" : "warning"
-                    }
-                    size="small"
+      {/* Properties Grid */}
+      {properties.length > 0 ? (
+        <Grid container spacing={3}>
+          {properties.map((property) => (
+            <Grid item xs={12} sm={6} lg={4} key={property._id}>
+              <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+                {property.images && property.images.length > 0 && (
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={`http://localhost:5000${property.images[0]}`}
+                    alt={property.title}
+                    sx={{ objectFit: "cover" }}
                   />
-                  {property.images && property.images.length > 1 && (
-                    <Typography variant="caption" color="text.secondary">
-                      +{property.images.length - 1} more
+                )}
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    {property.title}
+                  </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                    <LocationIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+                      {property.location}
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <BedIcon fontSize="small" color="action" />
+                      <Typography variant="body2" sx={{ ml: 0.5 }}>
+                        {property.bedrooms}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <BathtubIcon fontSize="small" color="action" />
+                      <Typography variant="body2" sx={{ ml: 0.5 }}>
+                        {property.bathrooms}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <SquareFootIcon fontSize="small" color="action" />
+                      <Typography variant="body2" sx={{ ml: 0.5 }}>
+                        {property.area} sqft
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                    <Box>
+                      <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
+                        ₹{property.rent?.toLocaleString()}/month
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Deposit: ₹{property.deposit?.toLocaleString()}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={property.status}
+                      color={
+                        property.status === "Available" ? "success" : 
+                        property.status === "Rented" ? "primary" : "warning"
+                      }
+                      size="small"
+                    />
+                  </Box>
+
+                  {property.currentTenant && (
+                    <Typography variant="body2" color="text.secondary">
+                      Tenant: {property.currentTenant.name}
                     </Typography>
                   )}
-                </Box>
-              </CardContent>
-              <CardActions>
-                <Button
-                  size="small"
-                  startIcon={<EditIcon />}
-                  onClick={() => handleOpen(property)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  size="small"
-                  color="error"
-                  startIcon={<DeleteIcon />}
-                  onClick={() => handleDelete(property._id)}
-                >
-                  Delete
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {properties.length === 0 && !loading && (
-        <Box textAlign="center" py={4}>
-          <Typography variant="h6" color="text.secondary">
-            No properties found
+                </CardContent>
+                <CardActions>
+                  <Button
+                    size="small"
+                    startIcon={<EditIcon />}
+                    onClick={() => handleOpen(property)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="small"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => handleDelete(property._id)}
+                  >
+                    Delete
+                  </Button>
+                </CardActions>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <Box textAlign="center" py={8}>
+          <HomeIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+            No properties created yet
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Add your first property to get started
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Start by adding your first rental property to manage tenants and track income.
           </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => handleOpen()}
+            size="large"
           >
-            Add Property
+            Add Your First Property
           </Button>
         </Box>
       )}
 
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
+      {/* Add/Edit Property Dialog */}
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600, pb: 1 }}>
           {editingProperty ? "Edit Property" : "Add New Property"}
         </DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Property Name"
-            fullWidth
-            variant="outlined"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            sx={{ mb: 2 }}
-            required
-          />
-          <TextField
-            margin="dense"
-            label="Address"
-            fullWidth
-            variant="outlined"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            sx={{ mb: 2 }}
-            required
-          />
-          <TextField
-            margin="dense"
-            label="Property Type"
-            select
-            fullWidth
-            variant="outlined"
-            value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-            sx={{ mb: 2 }}
-            SelectProps={{ native: true }}
-            required
-          >
-            <option value="">Select Type</option>
-            <option value="Apartment">Apartment</option>
-            <option value="House">House</option>
-            <option value="Condo">Condo</option>
-            <option value="Studio">Studio</option>
-            <option value="Townhouse">Townhouse</option>
-            <option value="Other">Other</option>
-          </TextField>
-          <TextField
-            margin="dense"
-            label="Monthly Rent"
-            type="number"
-            fullWidth
-            variant="outlined"
-            value={formData.rent}
-            onChange={(e) => setFormData({ ...formData, rent: e.target.value })}
-            sx={{ mb: 2 }}
-            required
-          />
-          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-            <TextField
-              margin="dense"
-              label="Bedrooms"
-              type="number"
-              variant="outlined"
-              value={formData.bedrooms}
-              onChange={(e) => setFormData({ ...formData, bedrooms: parseInt(e.target.value) || 1 })}
-              inputProps={{ min: 0 }}
-            />
-            <TextField
-              margin="dense"
-              label="Bathrooms"
-              type="number"
-              variant="outlined"
-              value={formData.bathrooms}
-              onChange={(e) => setFormData({ ...formData, bathrooms: parseInt(e.target.value) || 1 })}
-              inputProps={{ min: 0 }}
-            />
-          </Box>
-          <TextField
-            margin="dense"
-            label="Description"
-            fullWidth
-            multiline
-            rows={3}
-            variant="outlined"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="Status"
-            select
-            fullWidth
-            variant="outlined"
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-            SelectProps={{ native: true }}
-          >
-            <option value="Available">Available</option>
-            <option value="Occupied">Occupied</option>
-            <option value="Maintenance">Under Maintenance</option>
-          </TextField>
 
-          {/* Image Upload Section */}
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle1" sx={{ mb: 2 }}>
-              Property Images
-            </Typography>
-            
-            <input
-              accept="image/*"
-              style={{ display: 'none' }}
-              id="image-upload"
-              multiple
-              type="file"
-              onChange={handleImageSelect}
-            />
-            <label htmlFor="image-upload">
-              <Button
-                variant="outlined"
-                component="span"
-                startIcon={<PhotoCameraIcon />}
-                sx={{ mb: 2 }}
-              >
-                Add Images
-              </Button>
-            </label>
+        <DialogContent sx={{ pt: 1 }}>
+          <Box sx={{ p: 1 }}>
+            <Grid container spacing={2}>
+              {/* === Basic Information === */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                  Basic Information
+                </Typography>
+              </Grid>
 
-            {imagePreview.length > 0 && (
-              <ImageList sx={{ width: '100%', maxHeight: 200 }} cols={3} rowHeight={100}>
-                {imagePreview.map((image, index) => (
-                  <ImageListItem key={index}>
-                    <img
-                      src={image.startsWith('blob:') ? image : `http://localhost:5000${image}`}
-                      alt={`Property ${index + 1}`}
-                      loading="lazy"
-                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                    />
-                    <ImageListItemBar
-                      sx={{
-                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
-                      }}
-                      position="top"
-                      actionIcon={
-                        <IconButton
-                          sx={{ color: 'white' }}
-                          onClick={() => handleRemoveImage(index)}
-                        >
-                          <CloseIcon />
-                        </IconButton>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Property Name"
+                  fullWidth
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Property Type</InputLabel>
+                  <Select
+                    value={formData.type}
+                    label="Property Type"
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  >
+                    <MenuItem value="Apartment">Apartment</MenuItem>
+                    <MenuItem value="House">House</MenuItem>
+                    <MenuItem value="Villa">Villa</MenuItem>
+                    <MenuItem value="Studio">Studio</MenuItem>
+                    <MenuItem value="Room">Room</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  label="Description"
+                  fullWidth
+                  multiline
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </Grid>
+
+              {/* === Location Section === */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                  Location Details
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Location / Area"
+                  fullWidth
+                  required
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                />
+              </Grid>
+
+              {/* === Property Details === */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                  Property Details
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Bedrooms"
+                  type="number"
+                  fullWidth
+                  value={formData.bedrooms}
+                  onChange={(e) =>
+                    setFormData({ ...formData, bedrooms: parseInt(e.target.value) || 1 })
+                  }
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Bathrooms"
+                  type="number"
+                  fullWidth
+                  value={formData.bathrooms}
+                  onChange={(e) =>
+                    setFormData({ ...formData, bathrooms: parseInt(e.target.value) || 1 })
+                  }
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Area (sq ft)"
+                  type="number"
+                  fullWidth
+                  value={formData.area}
+                  onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                />
+              </Grid>
+
+              {/* === Pricing === */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                  Pricing
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Monthly Rent"
+                  type="number"
+                  fullWidth
+                  required
+                  value={formData.rent}
+                  onChange={(e) => setFormData({ ...formData, rent: e.target.value })}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">₹</InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Security Deposit"
+                  type="number"
+                  fullWidth
+                  value={formData.deposit}
+                  onChange={(e) => setFormData({ ...formData, deposit: e.target.value })}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">₹</InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              {/* === Amenities === */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                  Amenities
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 1,
+                    mb: 1,
+                  }}
+                >
+                  {commonAmenities.map((amenity) => (
+                    <Chip
+                      key={amenity}
+                      label={amenity}
+                      clickable
+                      color={
+                        formData.amenities.includes(amenity) ? "primary" : "default"
+                      }
+                      onClick={() => handleAmenityChange(amenity)}
+                      variant={
+                        formData.amenities.includes(amenity) ? "filled" : "outlined"
                       }
                     />
-                  </ImageListItem>
-                ))}
-              </ImageList>
-            )}
+                  ))}
+                </Box>
+              </Grid>
+
+              {/* === Images === */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                  Property Images
+                </Typography>
+
+                <label htmlFor="image-upload">
+                  <input
+                    accept="image/*"
+                    id="image-upload"
+                    multiple
+                    type="file"
+                    style={{ display: "none" }}
+                    onChange={handleImageSelect}
+                  />
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<PhotoCameraIcon />}
+                    sx={{ mb: 2 }}
+                  >
+                    Upload Images
+                  </Button>
+                </label>
+
+                {imagePreview.length > 0 && (
+                  <Grid container spacing={2}>
+                    {imagePreview.map((image, index) => (
+                      <Grid item xs={6} sm={4} md={3} key={index}>
+                        <Box sx={{ position: "relative" }}>
+                          <img
+                            src={
+                              image.startsWith("blob:")
+                                ? image
+                                : `http://localhost:5000${image}`
+                            }
+                            alt={`Property ${index + 1}`}
+                            style={{
+                              width: "100%",
+                              height: "120px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                            }}
+                          />
+                          <IconButton
+                            sx={{
+                              position: "absolute",
+                              top: 4,
+                              right: 4,
+                              bgcolor: "rgba(255,255,255,0.8)",
+                            }}
+                            size="small"
+                            onClick={() => handleRemoveImage(index)}
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+              </Grid>
+            </Grid>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingProperty ? "Update" : "Add"}
+
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={handleClose} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            disabled={submitting}
+            sx={{ minWidth: 100 }}
+          >
+            {submitting ? <CircularProgress size={20} /> : editingProperty ? "Update" : "Add"}
           </Button>
         </DialogActions>
       </Dialog>
+
     </Box>
   );
 };

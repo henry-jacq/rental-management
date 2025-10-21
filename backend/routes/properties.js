@@ -1,5 +1,6 @@
 import express from "express";
 import { requireRole } from "../middleware/auth.js";
+import Property from "../models/Property.js";
 
 const router = express.Router();
 
@@ -8,175 +9,130 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
   try {
     const { search, minPrice, maxPrice, propertyType, location } = req.query;
     
-    // In a real application, this would fetch from Property collection
-    // For now, return mock data that can be filtered
-    let properties = [
-      {
-        id: 1,
-        title: "Modern 2BHK Apartment",
-        description: "Spacious 2-bedroom apartment with modern amenities in prime location",
-        rent: 25000,
-        deposit: 50000,
-        type: "Apartment",
-        bedrooms: 2,
-        bathrooms: 2,
-        area: 1200,
-        location: "Koramangala, Bangalore",
-        address: "123 Main Street, Koramangala, Bangalore - 560034",
-        amenities: ["Parking", "Gym", "Swimming Pool", "Security", "Power Backup"],
-        images: [
-          "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400",
-          "https://images.unsplash.com/photo-1560448075-bb485b067938?w=400"
-        ],
-        landlord: {
-          name: "Rajesh Kumar",
-          phone: "+91 98765 43210",
-          email: "rajesh.kumar@example.com",
-          rating: 4.5
-        },
-        available: true,
-        availableFrom: "2024-12-01",
-        createdAt: new Date("2024-10-01")
-      },
-      {
-        id: 2,
-        title: "Cozy 1BHK Studio",
-        description: "Perfect for young professionals, fully furnished studio apartment",
-        rent: 18000,
-        deposit: 36000,
-        type: "Studio",
-        bedrooms: 1,
-        bathrooms: 1,
-        area: 600,
-        location: "Indiranagar, Bangalore",
-        address: "456 Park Avenue, Indiranagar, Bangalore - 560038",
-        amenities: ["Furnished", "WiFi", "AC", "Security", "Parking"],
-        images: [
-          "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
-          "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400"
-        ],
-        landlord: {
-          name: "Priya Sharma",
-          phone: "+91 87654 32109",
-          email: "priya.sharma@example.com",
-          rating: 4.8
-        },
-        available: true,
-        availableFrom: "2024-11-25",
-        createdAt: new Date("2024-09-15")
-      },
-      {
-        id: 3,
-        title: "Luxury 3BHK Villa",
-        description: "Spacious villa with garden, perfect for families",
-        rent: 45000,
-        deposit: 90000,
-        type: "Villa",
-        bedrooms: 3,
-        bathrooms: 3,
-        area: 2000,
-        location: "Whitefield, Bangalore",
-        address: "789 Garden View, Whitefield, Bangalore - 560066",
-        amenities: ["Garden", "Parking", "Security", "Power Backup", "Water Supply"],
-        images: [
-          "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400",
-          "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400"
-        ],
-        landlord: {
-          name: "Amit Patel",
-          phone: "+91 76543 21098",
-          email: "amit.patel@example.com",
-          rating: 4.3
-        },
-        available: true,
-        availableFrom: "2024-12-15",
-        createdAt: new Date("2024-10-10")
-      },
-      {
-        id: 4,
-        title: "Budget 1BHK Apartment",
-        description: "Affordable housing option with basic amenities",
-        rent: 12000,
-        deposit: 24000,
-        type: "Apartment",
-        bedrooms: 1,
-        bathrooms: 1,
-        area: 500,
-        location: "Electronic City, Bangalore",
-        address: "321 Tech Park Road, Electronic City, Bangalore - 560100",
-        amenities: ["Security", "Water Supply", "Parking"],
-        images: [
-          "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400"
-        ],
-        landlord: {
-          name: "Sunita Reddy",
-          phone: "+91 65432 10987",
-          email: "sunita.reddy@example.com",
-          rating: 4.0
-        },
-        available: false,
-        availableFrom: "2025-01-01",
-        createdAt: new Date("2024-09-20")
-      },
-      {
-        id: 5,
-        title: "Premium 2BHK with Balcony",
-        description: "Beautiful apartment with city view and spacious balcony",
-        rent: 32000,
-        deposit: 64000,
-        type: "Apartment",
-        bedrooms: 2,
-        bathrooms: 2,
-        area: 1100,
-        location: "HSR Layout, Bangalore",
-        address: "567 City View Apartments, HSR Layout, Bangalore - 560102",
-        amenities: ["Balcony", "City View", "Gym", "Swimming Pool", "Security", "Parking"],
-        images: [
-          "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400",
-          "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400"
-        ],
-        landlord: {
-          name: "Kavitha Nair",
-          phone: "+91 54321 09876",
-          email: "kavitha.nair@example.com",
-          rating: 4.7
-        },
-        available: true,
-        availableFrom: "2024-11-30",
-        createdAt: new Date("2024-10-05")
-      }
-    ];
+    // Build query for available properties
+    let query = { 
+      available: true, 
+      status: "Available" 
+    };
 
     // Apply filters
-    if (search) {
-      const searchLower = search.toLowerCase();
-      properties = properties.filter(property =>
-        property.title.toLowerCase().includes(searchLower) ||
-        property.location.toLowerCase().includes(searchLower) ||
-        property.description.toLowerCase().includes(searchLower)
-      );
-    }
-
-    if (minPrice) {
-      properties = properties.filter(property => property.rent >= parseInt(minPrice));
-    }
-
-    if (maxPrice) {
-      properties = properties.filter(property => property.rent <= parseInt(maxPrice));
+    if (minPrice || maxPrice) {
+      query.rent = {};
+      if (minPrice) query.rent.$gte = parseInt(minPrice);
+      if (maxPrice) query.rent.$lte = parseInt(maxPrice);
     }
 
     if (propertyType) {
-      properties = properties.filter(property => property.type === propertyType);
+      query.type = propertyType;
     }
 
     if (location) {
-      properties = properties.filter(property =>
-        property.location.toLowerCase().includes(location.toLowerCase())
-      );
+      query.$or = [
+        { location: { $regex: location, $options: 'i' } },
+        { address: { $regex: location, $options: 'i' } }
+      ];
     }
 
-    // Sort by creation date (newest first)
-    properties.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } },
+        { address: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Fetch properties from database
+    let properties = await Property.find(query)
+      .populate('landlord', 'name email phone')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Transform data for frontend compatibility
+    properties = properties.map(property => ({
+      id: property._id,
+      title: property.title,
+      description: property.description,
+      rent: property.rent,
+      deposit: property.deposit,
+      type: property.type,
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      area: property.area,
+      location: property.location,
+      address: property.address,
+      amenities: property.amenities || [],
+      images: property.images || [],
+      landlord: {
+        name: property.landlord?.name || "Property Owner",
+        phone: property.landlord?.phone || "Contact via platform",
+        email: property.landlord?.email || "Contact via platform",
+        rating: 4.5 // Default rating for now
+      },
+      available: property.available,
+      availableFrom: property.availableFrom || new Date().toISOString().split('T')[0],
+      createdAt: property.createdAt
+    }));
+
+    // If no properties found in database, return mock data for demo
+    if (properties.length === 0) {
+      properties = [
+        {
+          id: 1,
+          title: "Modern 2BHK Apartment",
+          description: "Spacious 2-bedroom apartment with modern amenities in prime location",
+          rent: 25000,
+          deposit: 50000,
+          type: "Apartment",
+          bedrooms: 2,
+          bathrooms: 2,
+          area: 1200,
+          location: "Koramangala, Bangalore",
+          address: "123 Main Street, Koramangala, Bangalore - 560034",
+          amenities: ["Parking", "Gym", "Swimming Pool", "Security", "Power Backup"],
+          images: [
+            "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400",
+            "https://images.unsplash.com/photo-1560448075-bb485b067938?w=400"
+          ],
+          landlord: {
+            name: "Rajesh Kumar",
+            phone: "+91 98765 43210",
+            email: "rajesh.kumar@example.com",
+            rating: 4.5
+          },
+          available: true,
+          availableFrom: "2024-12-01",
+          createdAt: new Date("2024-10-01")
+        },
+        {
+          id: 2,
+          title: "Cozy 1BHK Studio",
+          description: "Perfect for young professionals, fully furnished studio apartment",
+          rent: 18000,
+          deposit: 36000,
+          type: "Studio",
+          bedrooms: 1,
+          bathrooms: 1,
+          area: 600,
+          location: "Indiranagar, Bangalore",
+          address: "456 Park Avenue, Indiranagar, Bangalore - 560038",
+          amenities: ["Furnished", "WiFi", "AC", "Security", "Parking"],
+          images: [
+            "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
+            "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400"
+          ],
+          landlord: {
+            name: "Priya Sharma",
+            phone: "+91 87654 32109",
+            email: "priya.sharma@example.com",
+            rating: 4.8
+          },
+          available: true,
+          availableFrom: "2024-11-25",
+          createdAt: new Date("2024-09-15")
+        }
+      ];
+    }
 
     res.json({
       properties,
@@ -184,6 +140,7 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
       available: properties.filter(p => p.available).length
     });
   } catch (error) {
+    console.error("Error fetching properties:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -191,24 +148,43 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
 // Get property details by ID
 router.get("/:id", requireRole(["tenant"]), async (req, res) => {
   try {
-    const propertyId = parseInt(req.params.id);
-    
-    // In a real application, fetch from database
-    // const property = await Property.findById(propertyId).populate('landlord');
-    
-    // Mock data for now
-    const properties = [
-      // ... same mock data as above
-    ];
-    
-    const property = properties.find(p => p.id === propertyId);
+    const property = await Property.findById(req.params.id)
+      .populate('landlord', 'name email phone')
+      .lean();
     
     if (!property) {
       return res.status(404).json({ message: "Property not found" });
     }
 
-    res.json(property);
+    // Transform data for frontend compatibility
+    const transformedProperty = {
+      id: property._id,
+      title: property.title,
+      description: property.description,
+      rent: property.rent,
+      deposit: property.deposit,
+      type: property.type,
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      area: property.area,
+      location: property.location,
+      address: property.address,
+      amenities: property.amenities || [],
+      images: property.images || [],
+      landlord: {
+        name: property.landlord?.name || "Property Owner",
+        phone: property.landlord?.phone || "Contact via platform",
+        email: property.landlord?.email || "Contact via platform",
+        rating: 4.5
+      },
+      available: property.available,
+      availableFrom: property.availableFrom || new Date().toISOString().split('T')[0],
+      createdAt: property.createdAt
+    };
+
+    res.json(transformedProperty);
   } catch (error) {
+    console.error("Error fetching property:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -216,9 +192,15 @@ router.get("/:id", requireRole(["tenant"]), async (req, res) => {
 // Express interest in a property
 router.post("/:id/interest", requireRole(["tenant"]), async (req, res) => {
   try {
-    const propertyId = parseInt(req.params.id);
+    const propertyId = req.params.id;
     const { message } = req.body;
     
+    // Check if property exists
+    const property = await Property.findById(propertyId).populate('landlord');
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
     // In a real application, this would:
     // 1. Create an interest record in the database
     // 2. Send notification to landlord
@@ -236,12 +218,16 @@ router.post("/:id/interest", requireRole(["tenant"]), async (req, res) => {
       status: "pending"
     };
 
-    // Mock response
+    // Increment inquiries count
+    property.inquiries = (property.inquiries || 0) + 1;
+    await property.save();
+
     res.status(201).json({
       message: "Interest expressed successfully! The landlord will contact you soon.",
       interest: interestRecord
     });
   } catch (error) {
+    console.error("Error expressing interest:", error);
     res.status(500).json({ error: error.message });
   }
 });
