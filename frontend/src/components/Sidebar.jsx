@@ -7,19 +7,11 @@ import {
     ListItemIcon,
     ListItemText,
 } from "@mui/material";
-import { Logout as LogoutIcon } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useUser } from "../contexts/UserContext";
 
 const Sidebar = ({ title, menuItems, onMobileClose, isMobile }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { clearUser } = useUser();
-
-    const handleLogout = () => {
-        clearUser();
-        navigate("/");
-    };
 
     const handleNavigation = (path) => {
         navigate(path);
@@ -30,7 +22,14 @@ const Sidebar = ({ title, menuItems, onMobileClose, isMobile }) => {
 
     return (
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <Box sx={{ p: 3, borderBottom: "1px solid", borderColor: "divider" }}>
+            <Box sx={{
+                minHeight: 64,
+                display: "flex",
+                alignItems: "center",
+                px: 3,
+                borderBottom: "1px solid",
+                borderColor: "divider"
+            }}>
                 <Typography variant="h6" sx={{ fontWeight: 600, color: "text.primary" }}>
                     {title}
                 </Typography>
@@ -44,7 +43,6 @@ const Sidebar = ({ title, menuItems, onMobileClose, isMobile }) => {
                                 selected={isSelected}
                                 onClick={() => handleNavigation(item.path)}
                                 sx={{
-                                    borderRadius: 1,
                                     minHeight: 44,
                                     transition: "all 0.2s ease-in-out",
                                     "&.Mui-selected": {
@@ -101,52 +99,6 @@ const Sidebar = ({ title, menuItems, onMobileClose, isMobile }) => {
                     );
                 })}
             </List>
-            <Box sx={{ p: 2, borderTop: "1px solid", borderColor: "divider" }}>
-                <ListItem disablePadding>
-                    <ListItemButton
-                        onClick={handleLogout}
-                        sx={{
-                            borderRadius: 1,
-                            minHeight: 44,
-                            transition: "all 0.2s ease-in-out",
-                            "&:hover": {
-                                backgroundColor: "error.light",
-                                color: "error.contrastText",
-                                transform: "translateX(1px)",
-                                "& .MuiListItemIcon-root": {
-                                    color: "error.main",
-                                },
-                                "& .MuiListItemText-primary": {
-                                    color: "error.main",
-                                    fontWeight: 600,
-                                },
-                            },
-                        }}
-                    >
-                        <ListItemIcon
-                            sx={{
-                                minWidth: 36,
-                                color: "text.secondary",
-                                transition: "color 0.2s ease-in-out",
-                            }}
-                        >
-                            <LogoutIcon />
-                        </ListItemIcon>
-                        <ListItemText
-                            primary="Logout"
-                            slotProps={{
-                                primary: {
-                                    sx: {
-                                        fontSize: "0.875rem",
-                                        fontWeight: 500,
-                                        transition: "all 0.2s ease-in-out",
-                                    }
-                                }
-                            }}
-                        />
-                    </ListItemButton>
-                </ListItem>
-            </Box>
         </Box>
     );
 };

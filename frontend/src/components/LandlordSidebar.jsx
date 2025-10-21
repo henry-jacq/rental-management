@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Dashboard as DashboardIcon,
   Home as HomeIcon,
@@ -6,7 +5,6 @@ import {
   Payment as PaymentIcon,
   Build as BuildIcon,
   Assessment as AssessmentIcon,
-  Settings as SettingsIcon,
   Description as DescriptionIcon,
 } from "@mui/icons-material";
 import Sidebar from "./Sidebar";
@@ -18,7 +16,6 @@ const menuItems = [
   { text: "Agreements", icon: <DescriptionIcon />, path: "/landlord/agreements" },
   { text: "Payments", icon: <PaymentIcon />, path: "/landlord/payments" },
   { text: "Maintenance", icon: <BuildIcon />, path: "/landlord/maintenance" },
-  { text: "Settings", icon: <SettingsIcon />, path: "/landlord/settings" },
 ];
 
 const LandlordSidebar = ({ onMobileClose, isMobile }) => {

@@ -1,13 +1,14 @@
 import express from "express";
-import { verifyToken } from "../../backend/middleware/auth.js";
+import { requireRole } from "../middleware/auth.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
 // Cache for dashboard data (in production, use Redis or similar)
 const dashboardCache = new Map();
 
-router.get("/tenant", verifyToken(["tenant"]), (req, res) => {
-  const cacheKey = `tenant_${req.user.id}`;
+router.get("/tenant", requireRole(["tenant"]), (req, res) => {
+  const cacheKey = `tenant_${req.userData._id}`;
 
   // Check cache first
   if (dashboardCache.has(cacheKey)) {
@@ -17,26 +18,26 @@ router.get("/tenant", verifyToken(["tenant"]), (req, res) => {
     }
   }
 
-  // Simulate some processing time
+  // Use real user data from database
   const dashboardData = {
-    message: `Welcome Tenant ${req.user.name}`,
+    message: `Welcome Tenant ${req.userData.name}`,
     user: {
-      id: req.user.id,
-      name: req.user.name,
-      role: req.user.role,
-      email: "tenant@example.com", // In real app, fetch from database
-      phone: "+91 87654 32109",
-      initials: req.user.name.split(' ').map(n => n[0]).join('').toUpperCase()
+      id: req.userData._id,
+      name: req.userData.name,
+      role: req.userData.role,
+      email: req.userData.email,
+      phone: req.userData.phone
     },
     stats: {
-      rentDue: 1200,
-      maintenanceRequests: 2,
-      leaseStatus: "Active",
-      nextPaymentDate: "December 1, 2024"
+      rentDue: req.userData.lease?.rentAmount || 0,
+      maintenanceRequests: 2, // TODO: Calculate from maintenance requests
+      leaseStatus: req.userData.lease?.status || "Pending",
+      nextPaymentDate: "December 1, 2024" // TODO: Calculate next payment date
     },
     recentPayments: [
-      { date: "2024-11-01", amount: 1200, status: "Paid" },
-      { date: "2024-10-01", amount: 1200, status: "Paid" }
+      // TODO: Fetch from payments collection
+      { date: "2024-11-01", amount: req.userData.lease?.rentAmount || 1200, status: "Paid" },
+      { date: "2024-10-01", amount: req.userData.lease?.rentAmount || 1200, status: "Paid" }
     ]
   };
 
@@ -49,8 +50,8 @@ router.get("/tenant", verifyToken(["tenant"]), (req, res) => {
   res.json(dashboardData);
 });
 
-router.get("/landlord", verifyToken(["landlord"]), (req, res) => {
-  const cacheKey = `landlord_${req.user.id}`;
+router.get("/landlord", requireRole(["landlord"]), (req, res) => {
+  const cacheKey = `landlord_${req.userData._id}`;
 
   // Check cache first
   if (dashboardCache.has(cacheKey)) {
@@ -60,26 +61,27 @@ router.get("/landlord", verifyToken(["landlord"]), (req, res) => {
     }
   }
 
-  // Simulate some processing time
+  // Use real user data from database
   const dashboardData = {
-    message: `Welcome Landlord ${req.user.name}`,
+    message: `Welcome Landlord ${req.userData.name}`,
     user: {
-      id: req.user.id,
-      name: req.user.name,
-      role: req.user.role,
-      email: "landlord@example.com", // In real app, fetch from database
-      phone: "+91 98765 43210",
-      initials: req.user.name.split(' ').map(n => n[0]).join('').toUpperCase()
+      id: req.userData._id,
+      name: req.userData.name,
+      role: req.userData.role,
+      email: req.userData.email,
+      phone: req.userData.phone,
+      initials: req.userData.initials
     },
     stats: {
-      totalProperties: 5,
-      activeTenants: 12,
-      monthlyRevenue: 8500,
-      occupancyRate: 92
+      totalProperties: req.userData.propertiesOwned?.length || 0,
+      activeTenants: 12, // TODO: Calculate from active leases
+      monthlyRevenue: 8500, // TODO: Calculate from rent amounts
+      occupancyRate: 92 // TODO: Calculate occupancy rate
     },
     recentActivity: [
-      { type: "Payment", description: "Rent received from John Doe", amount: 1200 },
-      { type: "Maintenance", description: "Plumbing issue reported", status: "In Progress" }
+      // TODO: Fetch from payments and maintenance collections
+      { type: "Payment", description: "Recent rent payment received", amount: 1200 },
+      { type: "Maintenance", description: "Maintenance request submitted", status: "In Progress" }
     ]
   };
 
@@ -93,28 +95,42 @@ router.get("/landlord", verifyToken(["landlord"]), (req, res) => {
 });
 
 // User profile endpoint
-router.get("/profile", verifyToken(["tenant", "landlord"]), async (req, res) => {
+router.get("/profile", async (req, res) => {
   try {
-    // In a real application, you would fetch from database
-    // const user = await User.findById(req.user.id).select('-password');
-
+    // Use real user data from database (already fetched by middleware)
     const userProfile = {
-      id: req.user.id,
-      name: req.user.name,
-      role: req.user.role,
-      email: req.user.role === "landlord" ? "landlord@example.com" : "tenant@example.com",
-      phone: req.user.role === "landlord" ? "+91 98765 43210" : "+91 87654 32109",
-      initials: req.user.name.split(' ').map(n => n[0]).join('').toUpperCase(),
-      address: {
-        line1: "123 Main Street",
-        city: "Mumbai",
-        state: "Maharashtra",
-        postalCode: "400001",
-        country: "India"
+      id: req.userData._id,
+      name: req.userData.name,
+      role: req.userData.role,
+      email: req.userData.email,
+      initials: req.userData.initials,
+      phone: req.userData.phone || "",
+      emergencyContact: req.userData.emergencyContact || "",
+      joinDate: req.userData.createdAt ? new Date(req.userData.createdAt).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long' 
+      }) : "Not available",
+      address: req.userData.address || {
+        line1: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: ""
       },
       kyc: {
-        status: "Verified"
-      }
+        status: req.userData.kyc?.status || "Pending"
+      },
+      // Role-specific data
+      ...(req.userData.role === 'landlord' && {
+        propertiesOwned: req.userData.propertiesOwned || [],
+        digitalSignature: req.userData.digitalSignature,
+        company: req.userData.company
+      }),
+      ...(req.userData.role === 'tenant' && {
+        propertyRented: req.userData.propertyRented,
+        lease: req.userData.lease,
+        uploadedDocuments: req.userData.uploadedDocuments || []
+      })
     };
 
     res.json(userProfile);
@@ -124,3 +140,44 @@ router.get("/profile", verifyToken(["tenant", "landlord"]), async (req, res) => 
 });
 
 export default router;
+
+// Update user profile endpoint
+router.put("/profile", async (req, res) => {
+  try {
+    const { name, phone, emergencyContact, address, company } = req.body;
+    
+    // Prepare update data
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (phone) updateData.phone = phone;
+    if (emergencyContact) updateData.emergencyContact = emergencyContact;
+    if (address) updateData.address = address;
+    if (company && req.userData.role === 'landlord') updateData.company = company;
+
+    // Update user in database
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userData._id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        emergencyContact: updatedUser.emergencyContact,
+        address: updatedUser.address,
+        initials: updatedUser.name ? updatedUser.name.split(' ').map(n => n[0]).join('').toUpperCase() : ""
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});

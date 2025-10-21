@@ -33,44 +33,34 @@ const PaymentsPage = () => {
   const [statusFilter, setStatusFilter] = useState("All");
   const [dateFilter, setDateFilter] = useState("All");
 
-  // Mock data - replace with API calls
+  // Fetch real payment data from API
   useEffect(() => {
-    setPayments([
-      {
-        id: 1,
-        tenant: "John Doe",
-        property: "Sunset Apartments",
-        amount: 1200,
-        dueDate: "2024-12-01",
-        paidDate: "2024-11-28",
-        status: "Paid",
-        method: "UPI",
-        reference: "TXN123456789",
-      },
-      {
-        id: 2,
-        tenant: "Jane Smith",
-        property: "Garden Villa",
-        amount: 1800,
-        dueDate: "2024-12-01",
-        paidDate: null,
-        status: "Pending",
-        method: null,
-        reference: null,
-      },
-      {
-        id: 3,
-        tenant: "Bob Johnson",
-        property: "City Center",
-        amount: 1500,
-        dueDate: "2024-11-01",
-        paidDate: "2024-11-05",
-        status: "Overdue",
-        method: "Bank Transfer",
-        reference: "TXN987654321",
-      },
-    ]);
+    fetchPayments();
   }, []);
+
+  const fetchPayments = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/payments/landlord', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const paymentsData = await response.json();
+        setPayments(paymentsData);
+      } else {
+        // Fallback to empty array if API fails
+        setPayments([]);
+        console.error('Failed to fetch payments');
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      setPayments([]);
+    }
+  };
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.tenant.toLowerCase().includes(searchTerm.toLowerCase()) ||

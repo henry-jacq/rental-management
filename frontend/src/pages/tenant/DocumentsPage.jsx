@@ -125,10 +125,10 @@ const DocumentsPage = () => {
       id: documents.length + 1,
       name: uploadData.name,
       type: uploadData.type,
-      size: "1.0 MB", // Placeholder
+      size: uploadData.file ? `${(uploadData.file.size / (1024 * 1024)).toFixed(2)} MB` : "Unknown",
       uploadDate: new Date().toISOString().split('T')[0],
       status: "Active",
-      fileType: "pdf", // Placeholder
+      fileType: uploadData.file ? uploadData.file.type.split('/')[1] : "unknown"
     };
 
     setDocuments(prev => [...prev, newDocument]);

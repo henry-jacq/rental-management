@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -24,30 +24,34 @@ import {
 const AgreementsPage = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedAgreement, setSelectedAgreement] = useState(null);
-  
-  const [agreements, setAgreements] = useState([
-    {
-      id: 1,
-      tenant: "John Doe",
-      property: "123 Main St, Apt 2A",
-      type: "Lease Agreement",
-      status: "Active",
-      startDate: "2024-01-01",
-      endDate: "2024-12-31",
-      monthlyRent: 1750,
-      deposit: 3500,
-    },
-    {
-      id: 2,
-      tenant: "Jane Smith",
-      property: "456 Oak Ave, Unit 1B",
-      type: "Lease Agreement",
-      status: "Pending Approval",
-      startDate: "2024-12-01",
-      endDate: "2025-11-30",
-      monthlyRent: 1800,
-      deposit: 3600,
-    },
+  const [agreements, setAgreements] = useState([]);
+
+  useEffect(() => {
+    fetchAgreements();
+  }, []);
+
+  const fetchAgreements = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/agreements', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const agreementsData = await response.json();
+        setAgreements(agreementsData);
+      } else {
+        setAgreements([]);
+        console.error('Failed to fetch agreements');
+      }
+    } catch (error) {
+      console.error('Error fetching agreements:', error);
+      setAgreements([]);
+    }
+  };
     {
       id: 3,
       tenant: "Bob Johnson",

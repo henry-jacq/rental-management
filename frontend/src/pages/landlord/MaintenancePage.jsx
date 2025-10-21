@@ -38,38 +38,7 @@ import {
 } from "@mui/icons-material";
 
 const MaintenancePage = () => {
-  const [requests, setRequests] = useState([
-    {
-      id: 1,
-      property: "123 Main St, Apt 2A",
-      tenant: "John Doe",
-      issue: "Leaky faucet in kitchen",
-      priority: "Medium",
-      status: "Open",
-      dateCreated: "2024-10-15",
-      assignedTo: "Mike's Plumbing",
-    },
-    {
-      id: 2,
-      property: "456 Oak Ave, Unit 1B",
-      tenant: "Jane Smith",
-      issue: "Heating not working",
-      priority: "High",
-      status: "In Progress",
-      dateCreated: "2024-10-18",
-      assignedTo: "HVAC Solutions",
-    },
-    {
-      id: 3,
-      property: "789 Pine St, Apt 3C",
-      tenant: "Bob Johnson",
-      issue: "Broken window lock",
-      priority: "Low",
-      status: "Completed",
-      dateCreated: "2024-10-10",
-      assignedTo: "Handyman Services",
-    },
-  ]);
+  const [requests, setRequests] = useState([]);
 
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -84,6 +53,10 @@ const MaintenancePage = () => {
   });
 
   useEffect(() => {
+    fetchMaintenanceRequests();
+  }, []);
+
+  useEffect(() => {
     // Calculate stats
     const total = requests.length;
     const open = requests.filter(r => r.status === "Open").length;
@@ -92,6 +65,30 @@ const MaintenancePage = () => {
     
     setStats({ total, open, inProgress, completed });
   }, [requests]);
+
+  const fetchMaintenanceRequests = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/maintenance', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const maintenanceData = await response.json();
+        setRequests(maintenanceData);
+      } else {
+        // Fallback to empty array if API fails
+        setRequests([]);
+        console.error('Failed to fetch maintenance requests');
+      }
+    } catch (error) {
+      console.error('Error fetching maintenance requests:', error);
+      setRequests([]);
+    }
+  };
 
   const getPriorityColor = (priority) => {
     switch (priority) {

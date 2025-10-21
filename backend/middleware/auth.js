@@ -20,3 +20,18 @@ export const verifyToken = (roles = []) => {
     }
   };
 };
+
+// Role-specific middleware
+export const requireRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.userData) {
+      return res.status(401).json({ msg: "User data not available" });
+    }
+    
+    if (!roles.includes(req.userData.role)) {
+      return res.status(403).json({ msg: "Access denied" });
+    }
+    
+    next();
+  };
+};

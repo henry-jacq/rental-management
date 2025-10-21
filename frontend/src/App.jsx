@@ -16,6 +16,7 @@ const TenantLayout = lazy(() => import("./components/layouts/TenantLayout"));
 
 // Lazy load landlord pages
 const LandlordDashboard = lazy(() => import("./pages/landlord/DashboardPage"));
+const LandlordProfilePage = lazy(() => import("./pages/landlord/ProfilePage"));
 const PropertiesPage = lazy(() => import("./pages/landlord/PropertiesPage"));
 const TenantsPage = lazy(() => import("./pages/landlord/TenantsPage"));
 const AgreementsPage = lazy(() => import("./pages/landlord/AgreementsPage"));
@@ -26,6 +27,7 @@ const LandlordSettingsPage = lazy(() => import("./pages/landlord/SettingsPage"))
 
 // Lazy load tenant pages
 const TenantDashboard = lazy(() => import("./pages/tenant/DashboardPage"));
+const TenantProfilePage = lazy(() => import("./pages/tenant/ProfilePage"));
 const TenantPaymentsPage = lazy(() => import("./pages/tenant/PaymentsPage"));
 const MaintenancePage = lazy(() => import("./pages/tenant/MaintenancePage"));
 const DocumentsPage = lazy(() => import("./pages/tenant/DocumentsPage"));
@@ -92,7 +94,7 @@ const theme = createTheme({
   },
   spacing: 8,
   shape: {
-    borderRadius: 6,
+    borderRadius: 0,
   },
   components: {
     MuiCard: {
@@ -100,7 +102,7 @@ const theme = createTheme({
         root: {
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
           border: '1px solid #F3F4F6',
-          borderRadius: 8,
+          borderRadius: 0,
           '&:hover': {
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
           },
@@ -110,7 +112,7 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 6,
+          borderRadius: 0,
           textTransform: 'none',
           fontWeight: 500,
           padding: '8px 16px',
@@ -133,7 +135,7 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 0,
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         },
       },
@@ -207,6 +209,15 @@ function App() {
             } />
 
             {/* Landlord Routes */}
+            <Route path="/landlord/profile" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ProtectedRoute role="landlord">
+                  <LandlordLayout>
+                    <LandlordProfilePage />
+                  </LandlordLayout>
+                </ProtectedRoute>
+              </Suspense>
+            } />
             <Route path="/landlord/properties" element={
               <Suspense fallback={<LoadingFallback />}>
                 <ProtectedRoute role="landlord">
@@ -272,6 +283,15 @@ function App() {
             } />
 
             {/* Tenant Routes */}
+            <Route path="/tenant/profile" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ProtectedRoute role="tenant">
+                  <TenantLayout>
+                    <TenantProfilePage />
+                  </TenantLayout>
+                </ProtectedRoute>
+              </Suspense>
+            } />
             <Route path="/tenant/payments" element={
               <Suspense fallback={<LoadingFallback />}>
                 <ProtectedRoute role="tenant">

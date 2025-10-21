@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Box,
@@ -15,8 +15,10 @@ import {
   AttachMoney as AttachMoneyIcon,
   TrendingUp as TrendingUpIcon,
 } from "@mui/icons-material";
+import { useUser } from "../../contexts/UserContext";
 
 const DashboardPage = () => {
+  const { user } = useUser();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ 
     totalProperties: 0, 
@@ -25,12 +27,6 @@ const DashboardPage = () => {
     occupancyRate: 0
   });
   const [recentActivity, setRecentActivity] = useState([]);
-  const [user, setUser] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    initials: ""
-  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,17 +40,10 @@ const DashboardPage = () => {
         
         if (dashboardRes.data?.stats) setStats(dashboardRes.data.stats);
         if (dashboardRes.data?.recentActivity) setRecentActivity(dashboardRes.data.recentActivity);
-        if (dashboardRes.data?.user) setUser(dashboardRes.data.user);
         
       } catch (err) {
         console.error("Error fetching data:", err);
-        // Fallback to default values if API fails
-        setUser({
-          name: "Landlord User",
-          email: "landlord@example.com",
-          phone: "+91 98765 43210",
-          initials: "LU"
-        });
+        // Keep existing user data from context if API fails
       } finally {
         setLoading(false);
       }
@@ -100,7 +89,7 @@ const DashboardPage = () => {
               Welcome back, {user.name || "Landlord"}
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              {user.email} • {user.phone}
+              {user.email}
             </Typography>
           </Box>
         </Box>

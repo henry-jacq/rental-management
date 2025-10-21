@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import { useUser } from "../../contexts/UserContext";
 import {
   Box,
   Typography,
@@ -35,14 +36,57 @@ import {
 } from "@mui/icons-material";
 
 const SettingsPage = () => {
+  const { user } = useUser();
   const [profile, setProfile] = useState({
-    firstName: "Jane",
-    lastName: "Tenant",
-    email: "jane.tenant@example.com",
-    phone: "(555) 987-6543",
-    emergencyContact: "John Doe - (555) 123-4567",
-    currentAddress: "123 Main St, Apt 2A, City, State 12345",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    emergencyContact: "",
+    currentAddress: "",
   });
+
+  useEffect(() => {
+    if (user) {
+      const nameParts = user.name ? user.name.split(' ') : ['', ''];
+      // Fetch user profile data from API
+      fetchUserProfile();
+      setProfile({
+        firstName: nameParts[0] || "",
+        lastName: nameParts.slice(1).join(' ') || "",
+        email: user.email || "",
+        phone: "", // Will be loaded from API
+        emergencyContact: "", // Will be loaded from API
+        currentAddress: "", // Will be loaded from API
+      });
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/dashboard/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const profileData = await response.json();
+        setProfile(prev => ({
+          ...prev,
+          phone: profileData.phone || "",
+          emergencyContact: profileData.emergencyContact || "",
+          currentAddress: profileData.address ? 
+            `${profileData.address.line1}, ${profileData.address.city}, ${profileData.address.state} ${profileData.address.postalCode}` : 
+            ""
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
 
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -154,8 +198,8 @@ const SettingsPage = () => {
               <Grid container spacing={2}>
                 <Grid item xs={12} display="flex" justifyContent="center" sx={{ mb: 2 }}>
                   <Box position="relative">
-                    <Avatar sx={{ width: 80, height: 80 }}>
-                      {profile.firstName[0]}{profile.lastName[0]}
+                    <Avatar sx={{ width: 80, height: 80, bgcolor: "secondary.main", fontSize: "2rem" }}>
+                      {user?.initials || "T"}
                     </Avatar>
                     <IconButton
                       sx={{

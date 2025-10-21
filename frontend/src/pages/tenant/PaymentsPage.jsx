@@ -39,41 +39,34 @@ const PaymentsPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [message, setMessage] = useState("");
 
-  // Mock data - replace with API calls
+  // Fetch real payment data from API
   useEffect(() => {
-    setPayments([
-      {
-        id: 1,
-        month: "December 2024",
-        amount: 1200,
-        dueDate: "2024-12-01",
-        paidDate: null,
-        status: "Pending",
-        method: null,
-        reference: null,
-      },
-      {
-        id: 2,
-        month: "November 2024",
-        amount: 1200,
-        dueDate: "2024-11-01",
-        paidDate: "2024-11-28",
-        status: "Paid",
-        method: "UPI",
-        reference: "TXN123456789",
-      },
-      {
-        id: 3,
-        month: "October 2024",
-        amount: 1200,
-        dueDate: "2024-10-01",
-        paidDate: "2024-10-05",
-        status: "Paid",
-        method: "Bank Transfer",
-        reference: "TXN987654321",
-      },
-    ]);
+    fetchPayments();
   }, []);
+
+  const fetchPayments = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/payments/tenant', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const paymentsData = await response.json();
+        setPayments(paymentsData);
+      } else {
+        // Fallback to empty array if API fails
+        setPayments([]);
+        console.error('Failed to fetch payments');
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      setPayments([]);
+    }
+  };
 
   const handlePayment = () => {
     // API call to process payment

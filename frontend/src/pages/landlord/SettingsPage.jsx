@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import { useUser } from "../../contexts/UserContext";
 import {
   Box,
   Typography,
@@ -36,14 +37,29 @@ import {
 } from "@mui/icons-material";
 
 const SettingsPage = () => {
+  const { user } = useUser();
   const [profile, setProfile] = useState({
-    firstName: "John",
-    lastName: "Landlord",
-    email: "john.landlord@example.com",
-    phone: "(555) 123-4567",
-    company: "Landlord Properties LLC",
-    address: "123 Business St, City, State 12345",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    company: "",
+    address: "",
   });
+
+  useEffect(() => {
+    if (user) {
+      const nameParts = user.name ? user.name.split(' ') : ['', ''];
+      setProfile({
+        firstName: nameParts[0] || "",
+        lastName: nameParts.slice(1).join(' ') || "",
+        email: user.email || "",
+        phone: "",
+        company: "Landlord Properties LLC",
+        address: "123 Business St, City, State 12345",
+      });
+    }
+  }, [user]);
 
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -137,8 +153,8 @@ const SettingsPage = () => {
               <Grid container spacing={2}>
                 <Grid item xs={12} display="flex" justifyContent="center" sx={{ mb: 2 }}>
                   <Box position="relative">
-                    <Avatar sx={{ width: 80, height: 80 }}>
-                      {profile.firstName[0]}{profile.lastName[0]}
+                    <Avatar sx={{ width: 80, height: 80, bgcolor: "primary.main", fontSize: "2rem" }}>
+                      {user?.initials || "L"}
                     </Avatar>
                     <IconButton
                       sx={{

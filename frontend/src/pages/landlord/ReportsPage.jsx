@@ -32,31 +32,73 @@ import {
 const ReportsPage = () => {
   const [reportType, setReportType] = useState("financial");
   const [dateRange, setDateRange] = useState("month");
+  const [financialData, setFinancialData] = useState({
+    totalRevenue: 0,
+    totalExpenses: 0,
+    netIncome: 0,
+    occupancyRate: 0,
+    monthlyBreakdown: []
+  });
+  const [propertyData, setPropertyData] = useState([]);
+  const [maintenanceData, setMaintenanceData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const financialData = {
-    totalRevenue: 15750,
-    totalExpenses: 3200,
-    netIncome: 12550,
-    occupancyRate: 92,
-    monthlyBreakdown: [
-      { month: "October 2024", revenue: 5250, expenses: 800, net: 4450 },
-      { month: "September 2024", revenue: 5250, expenses: 1200, net: 4050 },
-      { month: "August 2024", revenue: 5250, expenses: 1200, net: 4050 },
-    ]
+  useEffect(() => {
+    fetchReportsData();
+  }, [reportType, dateRange]);
+
+  const fetchReportsData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Fetch financial data
+      if (reportType === "financial") {
+        const response = await fetch(`/api/reports/financial?range=${dateRange}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setFinancialData(data);
+        }
+      }
+      
+      // Fetch property data
+      if (reportType === "property") {
+        const response = await fetch(`/api/reports/property?range=${dateRange}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPropertyData(data);
+        }
+      }
+      
+      // Fetch maintenance data
+      if (reportType === "maintenance") {
+        const response = await fetch(`/api/reports/maintenance?range=${dateRange}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setMaintenanceData(data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching reports data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const propertyData = [
-    { property: "123 Main St, Apt 2A", rent: 1750, status: "Occupied", tenant: "John Doe" },
-    { property: "456 Oak Ave, Unit 1B", rent: 1800, status: "Occupied", tenant: "Jane Smith" },
-    { property: "789 Pine St, Apt 3C", rent: 1700, status: "Occupied", tenant: "Bob Johnson" },
-    { property: "321 Elm St, Unit 2B", rent: 1650, status: "Vacant", tenant: "-" },
-  ];
-
-  const maintenanceData = [
-    { month: "October 2024", requests: 8, completed: 6, pending: 2, cost: 1200 },
-    { month: "September 2024", requests: 12, completed: 10, pending: 2, cost: 1800 },
-    { month: "August 2024", requests: 6, completed: 6, pending: 0, cost: 900 },
-  ];
 
   const handleExportReport = () => {
     // Handle report export functionality

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Box,
@@ -16,8 +16,10 @@ import {
   Assignment as AssignmentIcon,
   Schedule as ScheduleIcon,
 } from "@mui/icons-material";
+import { useUser } from "../../contexts/UserContext";
 
 const DashboardPage = () => {
+  const { user } = useUser();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ 
     rentDue: 0, 
@@ -26,12 +28,6 @@ const DashboardPage = () => {
     nextPaymentDate: "December 1, 2024"
   });
   const [recentPayments, setRecentPayments] = useState([]);
-  const [user, setUser] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    initials: ""
-  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,7 +40,6 @@ const DashboardPage = () => {
         });
         
         if (dashboardRes.data?.stats) setStats(dashboardRes.data.stats);
-        if (dashboardRes.data?.user) setUser(dashboardRes.data.user);
         
         // Format recent payments with currency
         if (dashboardRes.data?.recentPayments) {
@@ -57,13 +52,7 @@ const DashboardPage = () => {
         
       } catch (err) {
         console.error("Error fetching data:", err);
-        // Fallback to default values if API fails
-        setUser({
-          name: "Tenant User",
-          email: "tenant@example.com",
-          phone: "+91 87654 32109",
-          initials: "TU"
-        });
+        // Keep existing user data from context if API fails
       } finally {
         setLoading(false);
       }
@@ -114,7 +103,7 @@ const DashboardPage = () => {
               Welcome back, {user.name || "Tenant"}
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              {user.email} • {user.phone}
+              {user.email}
             </Typography>
           </Box>
         </Box>

@@ -1,13 +1,10 @@
-import React from "react";
-import { IconButton, Avatar, Tooltip } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
 import { Notifications as NotificationsIcon } from "@mui/icons-material";
 import BaseLayout from "./BaseLayout";
 import TenantSidebar from "../TenantSidebar";
-import { useUser } from "../../contexts/UserContext";
+import ProfileDropdown from "../ProfileDropdown";
 
 const TenantLayout = ({ children }) => {
-  const { user } = useUser();
-  
   const appBarActions = (
     <>
       <Tooltip title="Notifications">
@@ -15,20 +12,13 @@ const TenantLayout = ({ children }) => {
           <NotificationsIcon />
         </IconButton>
       </Tooltip>
-      <Tooltip title={user?.name || "Account"}>
-        <IconButton color="inherit" size="small">
-          <Avatar sx={{ width: 32, height: 32, bgcolor: "secondary.main", fontSize: "0.875rem" }}>
-            {user?.initials || "T"}
-          </Avatar>
-        </IconButton>
-      </Tooltip>
+      <ProfileDropdown userRole="tenant" />
     </>
   );
 
   return (
     <BaseLayout
       SidebarComponent={TenantSidebar}
-      title="Rental Management"
       appBarActions={appBarActions}
     >
       {children}

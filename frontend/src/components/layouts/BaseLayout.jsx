@@ -12,8 +12,7 @@ const drawerWidth = 240;
 
 const BaseLayout = ({ 
   children, 
-  SidebarComponent, 
-  title = "Rental Management",
+  SidebarComponent,
   appBarActions 
 }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -33,7 +32,6 @@ const BaseLayout = ({
       <AppBarComponent
         drawerWidth={drawerWidth}
         onDrawerToggle={handleDrawerToggle}
-        title={title}
         actions={appBarActions}
       />
       

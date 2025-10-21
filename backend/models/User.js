@@ -59,6 +59,7 @@ const userSchema = new mongoose.Schema(
     // Landlord specific
     propertiesOwned: [{ type: mongoose.Schema.Types.ObjectId, ref: "Property" }],
     digitalSignature: { type: String }, // URL or base64
+    company: { type: String }, // Company name for landlords
 
     // Tenant specific
     propertyRented: { type: mongoose.Schema.Types.ObjectId, ref: "Property" },

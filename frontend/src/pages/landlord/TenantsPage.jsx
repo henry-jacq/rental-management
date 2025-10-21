@@ -46,33 +46,34 @@ const TenantsPage = () => {
     status: "Active",
   });
 
-  // Mock data - replace with API calls
+  // Fetch real tenant data from API
   useEffect(() => {
-    setTenants([
-      {
-        id: 1,
-        name: "John Doe",
-        email: "john@example.com",
-        phone: "+1 234-567-8900",
-        property: "Sunset Apartments",
-        leaseStart: "2024-01-01",
-        leaseEnd: "2024-12-31",
-        status: "Active",
-        rent: 1200,
-      },
-      {
-        id: 2,
-        name: "Jane Smith",
-        email: "jane@example.com",
-        phone: "+1 234-567-8901",
-        property: "Garden Villa",
-        leaseStart: "2024-02-01",
-        leaseEnd: "2025-01-31",
-        status: "Active",
-        rent: 1800,
-      },
-    ]);
+    fetchTenants();
   }, []);
+
+  const fetchTenants = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/tenants', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const tenantsData = await response.json();
+        setTenants(tenantsData);
+      } else {
+        // Fallback to empty array if API fails
+        setTenants([]);
+        console.error('Failed to fetch tenants');
+      }
+    } catch (error) {
+      console.error('Error fetching tenants:', error);
+      setTenants([]);
+    }
+  };
 
   const handleOpen = (tenant = null) => {
     setEditingTenant(tenant);
