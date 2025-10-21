@@ -43,6 +43,14 @@ const PropertySchema = new mongoose.Schema(
     },
     minimumLeasePeriod: { type: Number, default: 12 }, // in months
     
+    // Rental type
+    rentalType: {
+      type: String,
+      enum: ["Rental", "Lease", "Both"],
+      default: "Rental",
+      required: true
+    },
+    
     // Property status
     status: {
       type: String,

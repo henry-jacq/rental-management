@@ -1,6 +1,7 @@
 import express from "express";
 import { requireRole } from "../middleware/auth.js";
 import Property from "../models/Property.js";
+import PropertyRequest from "../models/PropertyRequest.js";
 
 const router = express.Router();
 
@@ -8,11 +9,11 @@ const router = express.Router();
 router.get("/available", requireRole(["tenant"]), async (req, res) => {
   try {
     const { search, minPrice, maxPrice, propertyType, location } = req.query;
-    
+
     // Build query for available properties
-    let query = { 
-      available: true, 
-      status: "Available" 
+    let query = {
+      available: true,
+      status: "Available"
     };
 
     // Apply filters
@@ -63,6 +64,7 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
       address: property.address,
       amenities: property.amenities || [],
       images: property.images || [],
+      rentalType: property.rentalType || "Rental",
       landlord: {
         name: property.landlord?.name || "Property Owner",
         phone: property.landlord?.phone || "Contact via platform",
@@ -94,6 +96,7 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
             "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400",
             "https://images.unsplash.com/photo-1560448075-bb485b067938?w=400"
           ],
+          rentalType: "Both",
           landlord: {
             name: "Rajesh Kumar",
             phone: "+91 98765 43210",
@@ -121,6 +124,7 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
             "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
             "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400"
           ],
+          rentalType: "Rental",
           landlord: {
             name: "Priya Sharma",
             phone: "+91 87654 32109",
@@ -146,12 +150,12 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
 });
 
 // Get property details by ID
-router.get("/:id", requireRole(["tenant"]), async (req, res) => {
+router.get("/:id", requireRole(["tenant", "landlord"]), async (req, res) => {
   try {
     const property = await Property.findById(req.params.id)
       .populate('landlord', 'name email phone')
       .lean();
-    
+
     if (!property) {
       return res.status(404).json({ message: "Property not found" });
     }
@@ -171,6 +175,7 @@ router.get("/:id", requireRole(["tenant"]), async (req, res) => {
       address: property.address,
       amenities: property.amenities || [],
       images: property.images || [],
+      rentalType: property.rentalType || "Rental",
       landlord: {
         name: property.landlord?.name || "Property Owner",
         phone: property.landlord?.phone || "Contact via platform",
@@ -194,40 +199,88 @@ router.post("/:id/interest", requireRole(["tenant"]), async (req, res) => {
   try {
     const propertyId = req.params.id;
     const { message } = req.body;
-    
+
     // Check if property exists
     const property = await Property.findById(propertyId).populate('landlord');
     if (!property) {
       return res.status(404).json({ message: "Property not found" });
     }
 
-    // In a real application, this would:
-    // 1. Create an interest record in the database
-    // 2. Send notification to landlord
-    // 3. Send confirmation email to tenant
-    
-    const interestRecord = {
-      id: Date.now(),
-      propertyId,
-      tenantId: req.userData._id,
-      tenantName: req.userData.name,
-      tenantEmail: req.userData.email,
-      tenantPhone: req.userData.phone,
-      message: message || "I am interested in this property. Please contact me.",
-      createdAt: new Date(),
-      status: "pending"
-    };
+    if (!property.available) {
+      return res.status(400).json({ message: "Property is not available" });
+    }
+
+    // Check if tenant already has a pending request
+    const existingRequest = await PropertyRequest.findOne({
+      property: propertyId,
+      tenant: req.userData._id,
+      status: { $in: ["Pending", "Approved", "Agreement_Sent"] }
+    });
+
+    if (existingRequest) {
+      return res.status(400).json({
+        message: "You already have a pending request for this property"
+      });
+    }
+
+    // Create property request
+    const propertyRequest = new PropertyRequest({
+      property: propertyId,
+      tenant: req.userData._id,
+      landlord: property.landlord._id,
+      message: message || "I am interested in this property."
+    });
+
+    await propertyRequest.save();
 
     // Increment inquiries count
     property.inquiries = (property.inquiries || 0) + 1;
     await property.save();
 
     res.status(201).json({
-      message: "Interest expressed successfully! The landlord will contact you soon.",
-      interest: interestRecord
+      message: "Your request has been sent to the property owner!",
+      request: propertyRequest
     });
   } catch (error) {
     console.error("Error expressing interest:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get current tenants for landlord
+router.get("/tenants", requireRole(["landlord"]), async (req, res) => {
+  try {
+    const landlordId = req.userData._id;
+
+    // Find all properties owned by landlord that have current tenants
+    const properties = await Property.find({
+      landlord: landlordId,
+      currentTenant: { $exists: true, $ne: null }
+    }).populate('currentTenant', 'name email phone lease');
+
+    // Transform the data to include tenant and property information
+    const tenants = properties.map(property => ({
+      _id: property.currentTenant._id,
+      name: property.currentTenant.name,
+      email: property.currentTenant.email,
+      phone: property.currentTenant.phone,
+      property: {
+        _id: property._id,
+        title: property.title,
+        location: property.location,
+        rent: property.rent
+      },
+      lease: property.currentTenant.lease || {
+        startDate: property.leaseStartDate,
+        endDate: property.leaseEndDate,
+        status: 'Active',
+        rentAmount: property.rent
+      }
+    }));
+
+    res.json({ tenants });
+  } catch (error) {
+    console.error("Error fetching current tenants:", error);
     res.status(500).json({ error: error.message });
   }
 });

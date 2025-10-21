@@ -57,12 +57,14 @@ const PropertiesPage = () => {
     bathrooms: 1,
     area: "",
     location: "",
+    address: "",
     amenities: [],
     furnished: "Unfurnished",
     parking: false,
     petFriendly: false,
     preferredTenantType: "Any",
     minimumLeasePeriod: 12,
+    rentalType: "Rental",
   });
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreview, setImagePreview] = useState([]);
@@ -102,12 +104,14 @@ const PropertiesPage = () => {
         bathrooms: property.bathrooms || 1,
         area: property.area || "",
         location: property.location || "",
+        address: property.address || "",
         amenities: property.amenities || [],
         furnished: property.furnished || "Unfurnished",
         parking: property.parking || false,
         petFriendly: property.petFriendly || false,
         preferredTenantType: property.preferredTenantType || "Any",
         minimumLeasePeriod: property.minimumLeasePeriod || 12,
+        rentalType: property.rentalType || "Rental",
       });
       setImagePreview(property.images || []);
     } else {
@@ -121,12 +125,14 @@ const PropertiesPage = () => {
         bathrooms: 1,
         area: "",
         location: "",
+        address: "",
         amenities: [],
         furnished: "Unfurnished",
         parking: false,
         petFriendly: false,
         preferredTenantType: "Any",
         minimumLeasePeriod: 12,
+        rentalType: "Rental",
       });
       setImagePreview([]);
     }
@@ -360,6 +366,9 @@ const PropertiesPage = () => {
                       <Typography variant="body2" color="text.secondary">
                         Deposit: ₹{property.deposit?.toLocaleString()}
                       </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Type: {property.rentalType || "Rental"}
+                      </Typography>
                     </Box>
                     <Chip
                       label={property.status}
@@ -457,6 +466,21 @@ const PropertiesPage = () => {
                     <MenuItem value="Villa">Villa</MenuItem>
                     <MenuItem value="Studio">Studio</MenuItem>
                     <MenuItem value="Room">Room</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Rental Type</InputLabel>
+                  <Select
+                    value={formData.rentalType}
+                    label="Rental Type"
+                    onChange={(e) => setFormData({ ...formData, rentalType: e.target.value })}
+                  >
+                    <MenuItem value="Rental">Rental</MenuItem>
+                    <MenuItem value="Lease">Lease</MenuItem>
+                    <MenuItem value="Both">Both</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>

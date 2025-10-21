@@ -5,12 +5,14 @@ import {
   Description as DocumentIcon,
   Notifications as NotificationsIcon,
   Home as HomeIcon,
+  Assignment as AssignmentIcon,
 } from "@mui/icons-material";
 import Sidebar from "./Sidebar";
 
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/tenant" },
   { text: "Properties", icon: <HomeIcon />, path: "/tenant/properties" },
+  { text: "My Requests", icon: <AssignmentIcon />, path: "/tenant/requests" },
   { text: "Payments", icon: <PaymentIcon />, path: "/tenant/payments" },
   { text: "Maintenance", icon: <BuildIcon />, path: "/tenant/maintenance" },
   { text: "Documents", icon: <DocumentIcon />, path: "/tenant/documents" },

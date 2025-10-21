@@ -35,6 +35,7 @@ import {
     Email as EmailIcon,
     Close as CloseIcon,
 } from "@mui/icons-material";
+import PropertyContactDialog from "../../components/PropertyContactDialog";
 
 const PropertiesPage = () => {
     const [properties, setProperties] = useState([]);
@@ -43,8 +44,11 @@ const PropertiesPage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [priceRange, setPriceRange] = useState("");
     const [propertyType, setPropertyType] = useState("");
+    const [rentalType, setRentalType] = useState("");
     const [selectedProperty, setSelectedProperty] = useState(null);
     const [favorites, setFavorites] = useState(new Set());
+    const [contactDialogOpen, setContactDialogOpen] = useState(false);
+    const [contactProperty, setContactProperty] = useState(null);
 
     useEffect(() => {
         fetchProperties();
@@ -52,7 +56,7 @@ const PropertiesPage = () => {
 
     useEffect(() => {
         filterProperties();
-    }, [properties, searchTerm, priceRange, propertyType]);
+    }, [properties, searchTerm, priceRange, propertyType, rentalType]);
 
     const fetchProperties = async () => {
         try {
@@ -213,6 +217,13 @@ const PropertiesPage = () => {
             filtered = filtered.filter(property => property.type === propertyType);
         }
 
+        // Rental type filter
+        if (rentalType) {
+            filtered = filtered.filter(property =>
+                property.rentalType === rentalType || property.rentalType === "Both"
+            );
+        }
+
         setFilteredProperties(filtered);
     };
 
@@ -234,7 +245,12 @@ const PropertiesPage = () => {
         setSelectedProperty(null);
     };
 
-    const handleContactLandlord = async (landlord, propertyId) => {
+    const handleContactLandlord = (property) => {
+        setContactProperty(property);
+        setContactDialogOpen(true);
+    };
+
+    const handleSubmitContactRequest = async (propertyId, message) => {
         try {
             const token = localStorage.getItem("token");
             const response = await fetch(`http://localhost:5000/api/properties/${propertyId}/interest`, {
@@ -244,21 +260,20 @@ const PropertiesPage = () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    message: "I am interested in this property. Please contact me to discuss further."
+                    message: message || "I am interested in this property. Please contact me to discuss further."
                 })
             });
 
             if (response.ok) {
                 const data = await response.json();
-                alert(data.message);
+                // Show success message
+                alert(data.message || "Your request has been sent to the property owner!");
             } else {
-                // Fallback to showing contact info
-                alert(`Contact ${landlord.name} at ${landlord.phone} or ${landlord.email}`);
+                throw new Error('Failed to send request');
             }
         } catch (error) {
             console.error("Error expressing interest:", error);
-            // Fallback to showing contact info
-            alert(`Contact ${landlord.name} at ${landlord.phone} or ${landlord.email}`);
+            throw error;
         }
     };
 
@@ -343,6 +358,9 @@ const PropertiesPage = () => {
                         <Typography variant="body2" color="text.secondary">
                             Deposit: ₹{property.deposit.toLocaleString()}
                         </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Type: {property.rentalType || "Rental"}
+                        </Typography>
                     </Box>
                 </Box>
 
@@ -358,7 +376,7 @@ const PropertiesPage = () => {
                     <Button
                         variant="contained"
                         size="small"
-                        onClick={() => handleContactLandlord(property.landlord, property.id)}
+                        onClick={() => handleContactLandlord(property)}
                         disabled={!property.available}
                         sx={{ flex: 1 }}
                     >
@@ -385,7 +403,7 @@ const PropertiesPage = () => {
             <Card sx={{ mb: 4 }}>
                 <CardContent>
                     <Grid container spacing={3}>
-                        <Grid item xs={12} md={4}>
+                        <Grid item xs={12} md={3}>
                             <TextField
                                 fullWidth
                                 placeholder="Search properties..."
@@ -400,7 +418,7 @@ const PropertiesPage = () => {
                                 }}
                             />
                         </Grid>
-                        <Grid item xs={12} md={4}>
+                        <Grid item xs={12} md={3}>
                             <FormControl fullWidth>
                                 <InputLabel>Price Range</InputLabel>
                                 <Select
@@ -416,7 +434,7 @@ const PropertiesPage = () => {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid item xs={12} md={4}>
+                        <Grid item xs={12} md={3}>
                             <FormControl fullWidth>
                                 <InputLabel>Property Type</InputLabel>
                                 <Select
@@ -429,6 +447,21 @@ const PropertiesPage = () => {
                                     <MenuItem value="Studio">Studio</MenuItem>
                                     <MenuItem value="Villa">Villa</MenuItem>
                                     <MenuItem value="House">House</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                            <FormControl fullWidth>
+                                <InputLabel>Rental Type</InputLabel>
+                                <Select
+                                    value={rentalType}
+                                    label="Rental Type"
+                                    onChange={(e) => setRentalType(e.target.value)}
+                                >
+                                    <MenuItem value="">All Types</MenuItem>
+                                    <MenuItem value="Rental">Rental</MenuItem>
+                                    <MenuItem value="Lease">Lease</MenuItem>
+                                    <MenuItem value="Both">Both</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -582,7 +615,7 @@ const PropertiesPage = () => {
                             <Button onClick={handleCloseDetails}>Close</Button>
                             <Button
                                 variant="contained"
-                                onClick={() => handleContactLandlord(selectedProperty.landlord, selectedProperty.id)}
+                                onClick={() => handleContactLandlord(selectedProperty)}
                                 disabled={!selectedProperty.available}
                             >
                                 Contact Landlord
@@ -591,6 +624,14 @@ const PropertiesPage = () => {
                     </>
                 )}
             </Dialog>
+
+            {/* Property Contact Dialog */}
+            <PropertyContactDialog
+                open={contactDialogOpen}
+                onClose={() => setContactDialogOpen(false)}
+                property={contactProperty}
+                onSubmit={handleSubmitContactRequest}
+            />
         </Box>
     );
 };

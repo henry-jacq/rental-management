@@ -88,7 +88,8 @@ router.post("/", requireRole(["landlord"]), async (req, res) => {
             parking,
             petFriendly,
             preferredTenantType,
-            minimumLeasePeriod
+            minimumLeasePeriod,
+            rentalType
         } = req.body;
 
         const property = new Property({
@@ -108,6 +109,7 @@ router.post("/", requireRole(["landlord"]), async (req, res) => {
             petFriendly: petFriendly || false,
             preferredTenantType: preferredTenantType || "Any",
             minimumLeasePeriod: parseInt(minimumLeasePeriod) || 12,
+            rentalType: rentalType || "Rental",
             landlord: req.userData._id,
             available: true,
             status: "Available"

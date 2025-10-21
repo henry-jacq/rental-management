@@ -14,6 +14,7 @@ import {
   People as PeopleIcon,
   AttachMoney as AttachMoneyIcon,
   TrendingUp as TrendingUpIcon,
+  Description as DescriptionIcon,
 } from "@mui/icons-material";
 import { useUser } from "../../contexts/UserContext";
 
@@ -25,6 +26,12 @@ const DashboardPage = () => {
     activeTenants: 0, 
     monthlyRevenue: 0,
     occupancyRate: 0
+  });
+  const [agreementStats, setAgreementStats] = useState({
+    total: 0,
+    active: 0,
+    draft: 0,
+    expired: 0
   });
   const [recentActivity, setRecentActivity] = useState([]);
 
@@ -40,6 +47,15 @@ const DashboardPage = () => {
         
         if (dashboardRes.data?.stats) setStats(dashboardRes.data.stats);
         if (dashboardRes.data?.recentActivity) setRecentActivity(dashboardRes.data.recentActivity);
+
+        // Fetch agreements statistics
+        const agreementsRes = await axios.get("http://localhost:5000/api/landlord/agreements/stats/summary", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (agreementsRes.data?.stats) {
+          setAgreementStats(agreementsRes.data.stats);
+        }
         
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -129,11 +145,11 @@ const DashboardPage = () => {
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
-            icon={<TrendingUpIcon />}
-            title="Occupancy Rate"
-            value={`${stats.occupancyRate}%`}
-            subtitle="Above average"
-            color="success"
+            icon={<DescriptionIcon />}
+            title="Agreements"
+            value={agreementStats.total}
+            subtitle={`${agreementStats.active} active, ${agreementStats.draft} draft`}
+            color="info"
           />
         </Grid>
       </Grid>
