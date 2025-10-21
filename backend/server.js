@@ -16,6 +16,8 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // parse JSON bodies
 
+// Serve static files for uploaded images
+app.use('/uploads', express.static('uploads'));
 
 // mount all routes
 app.use("/api/auth", authRoutes);
