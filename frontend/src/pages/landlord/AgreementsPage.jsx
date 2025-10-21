@@ -182,7 +182,7 @@ const AgreementsPage = () => {
       headerName: 'Monthly Rent',
       flex: 0.8,
       minWidth: 120,
-      renderCell: (params) => `$${params.value.toLocaleString()}`,
+      renderCell: (params) => `₹${params.value.toLocaleString()}`,
     },
     {
       field: 'startDate',

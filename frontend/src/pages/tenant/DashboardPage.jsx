@@ -20,29 +20,50 @@ import {
 const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ 
-    rentDue: 1750, 
-    maintenanceRequests: 1, 
+    rentDue: 0, 
+    maintenanceRequests: 0, 
     leaseStatus: "Active",
     nextPaymentDate: "December 1, 2024"
   });
-  const [recentPayments, setRecentPayments] = useState([
-    { amount: "$1,750", status: "Paid", date: "Nov 1, 2024" },
-    { amount: "$1,750", status: "Paid", date: "Oct 1, 2024" },
-    { amount: "$1,750", status: "Paid", date: "Sep 1, 2024" },
-  ]);
-  const [userName] = useState("Sarah Johnson"); // This would come from auth context
+  const [recentPayments, setRecentPayments] = useState([]);
+  const [user, setUser] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    initials: ""
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/api/dashboard/tenant", {
+        
+        // Fetch dashboard data
+        const dashboardRes = await axios.get("http://localhost:5000/api/dashboard/tenant", {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (res.data?.stats) setStats(res.data.stats);
-        if (res.data?.recentPayments) setRecentPayments(res.data.recentPayments);
+        
+        if (dashboardRes.data?.stats) setStats(dashboardRes.data.stats);
+        if (dashboardRes.data?.user) setUser(dashboardRes.data.user);
+        
+        // Format recent payments with currency
+        if (dashboardRes.data?.recentPayments) {
+          const formattedPayments = dashboardRes.data.recentPayments.map(payment => ({
+            ...payment,
+            amount: `₹${payment.amount.toLocaleString()}`
+          }));
+          setRecentPayments(formattedPayments);
+        }
+        
       } catch (err) {
         console.error("Error fetching data:", err);
+        // Fallback to default values if API fails
+        setUser({
+          name: "Tenant User",
+          email: "tenant@example.com",
+          phone: "+91 87654 32109",
+          initials: "TU"
+        });
       } finally {
         setLoading(false);
       }
@@ -84,9 +105,19 @@ const DashboardPage = () => {
     <Box>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-          Welcome back, {userName}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+          <Avatar sx={{ bgcolor: "secondary.main", width: 56, height: 56, fontSize: "1.5rem" }}>
+            {user.initials || "T"}
+          </Avatar>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Welcome back, {user.name || "Tenant"}
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              {user.email} • {user.phone}
+            </Typography>
+          </Box>
+        </Box>
         <Typography variant="body1" color="text.secondary">
           Manage your rental account and stay up to date with payments.
         </Typography>
@@ -98,7 +129,7 @@ const DashboardPage = () => {
           <StatCard
             icon={<AttachMoneyIcon />}
             title="Next Payment"
-            value={`$${stats.rentDue?.toLocaleString()}`}
+            value={`₹${stats.rentDue?.toLocaleString()}`}
             subtitle={`Due ${stats.nextPaymentDate}`}
             color="error"
             action="Pay Now"

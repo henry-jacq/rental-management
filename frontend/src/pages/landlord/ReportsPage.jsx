@@ -72,7 +72,7 @@ const ReportsPage = () => {
               <MoneyIcon color="success" sx={{ mr: 2 }} />
               <Box>
                 <Typography variant="h5" color="success.main">
-                  ${financialData.totalRevenue.toLocaleString()}
+                  ₹{financialData.totalRevenue.toLocaleString()}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Total Revenue
@@ -89,7 +89,7 @@ const ReportsPage = () => {
               <TrendingUpIcon color="error" sx={{ mr: 2 }} />
               <Box>
                 <Typography variant="h5" color="error.main">
-                  ${financialData.totalExpenses.toLocaleString()}
+                  ₹{financialData.totalExpenses.toLocaleString()}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Total Expenses
@@ -106,7 +106,7 @@ const ReportsPage = () => {
               <AssessmentIcon color="primary" sx={{ mr: 2 }} />
               <Box>
                 <Typography variant="h5" color="primary">
-                  ${financialData.netIncome.toLocaleString()}
+                  ₹{financialData.netIncome.toLocaleString()}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Net Income
@@ -152,9 +152,9 @@ const ReportsPage = () => {
                 {financialData.monthlyBreakdown.map((row, index) => (
                   <TableRow key={index}>
                     <TableCell>{row.month}</TableCell>
-                    <TableCell align="right">${row.revenue.toLocaleString()}</TableCell>
-                    <TableCell align="right">${row.expenses.toLocaleString()}</TableCell>
-                    <TableCell align="right">${row.net.toLocaleString()}</TableCell>
+                    <TableCell align="right">₹{row.revenue.toLocaleString()}</TableCell>
+                    <TableCell align="right">₹{row.expenses.toLocaleString()}</TableCell>
+                    <TableCell align="right">₹{row.net.toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -184,7 +184,7 @@ const ReportsPage = () => {
             {propertyData.map((property, index) => (
               <TableRow key={index}>
                 <TableCell>{property.property}</TableCell>
-                <TableCell align="right">${property.rent.toLocaleString()}</TableCell>
+                <TableCell align="right">₹{property.rent.toLocaleString()}</TableCell>
                 <TableCell>
                   <Chip
                     label={property.status}
@@ -224,7 +224,7 @@ const ReportsPage = () => {
                 <TableCell align="right">{row.requests}</TableCell>
                 <TableCell align="right">{row.completed}</TableCell>
                 <TableCell align="right">{row.pending}</TableCell>
-                <TableCell align="right">${row.cost.toLocaleString()}</TableCell>
+                <TableCell align="right">₹{row.cost.toLocaleString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>

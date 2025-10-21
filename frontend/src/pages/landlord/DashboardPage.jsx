@@ -19,29 +19,42 @@ import {
 const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ 
-    totalProperties: 12, 
-    activeTenants: 28, 
-    monthlyRevenue: 45600,
-    occupancyRate: 92
+    totalProperties: 0, 
+    activeTenants: 0, 
+    monthlyRevenue: 0,
+    occupancyRate: 0
   });
-  const [recentActivity, setRecentActivity] = useState([
-    { type: "Payment", description: "Rent received from John Doe - Unit 2A", time: "2 hours ago" },
-    { type: "Maintenance", description: "Plumbing repair completed at Oak Avenue", time: "5 hours ago" },
-    { type: "New Tenant", description: "Lease signed for Pine Street Unit 3B", time: "1 day ago" },
-  ]);
-  const [userName] = useState("John Smith"); // This would come from auth context
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [user, setUser] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    initials: ""
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/api/dashboard/landlord", {
+        
+        // Fetch dashboard data
+        const dashboardRes = await axios.get("http://localhost:5000/api/dashboard/landlord", {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (res.data?.stats) setStats(res.data.stats);
-        if (res.data?.recentActivity) setRecentActivity(res.data.recentActivity);
+        
+        if (dashboardRes.data?.stats) setStats(dashboardRes.data.stats);
+        if (dashboardRes.data?.recentActivity) setRecentActivity(dashboardRes.data.recentActivity);
+        if (dashboardRes.data?.user) setUser(dashboardRes.data.user);
+        
       } catch (err) {
         console.error("Error fetching data:", err);
+        // Fallback to default values if API fails
+        setUser({
+          name: "Landlord User",
+          email: "landlord@example.com",
+          phone: "+91 98765 43210",
+          initials: "LU"
+        });
       } finally {
         setLoading(false);
       }
@@ -78,9 +91,19 @@ const DashboardPage = () => {
     <Box>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-          Welcome back, {userName}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+          <Avatar sx={{ bgcolor: "primary.main", width: 56, height: 56, fontSize: "1.5rem" }}>
+            {user.initials || "L"}
+          </Avatar>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Welcome back, {user.name || "Landlord"}
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              {user.email} • {user.phone}
+            </Typography>
+          </Box>
+        </Box>
         <Typography variant="body1" color="text.secondary">
           Here's what's happening with your properties today.
         </Typography>
@@ -110,7 +133,7 @@ const DashboardPage = () => {
           <StatCard
             icon={<AttachMoneyIcon />}
             title="Monthly Revenue"
-            value={`$${stats.monthlyRevenue?.toLocaleString()}`}
+            value={`₹${stats.monthlyRevenue?.toLocaleString()}`}
             subtitle="+12% from last month"
             color="warning"
           />

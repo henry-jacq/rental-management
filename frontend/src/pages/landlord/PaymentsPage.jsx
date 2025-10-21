@@ -110,7 +110,7 @@ const PaymentsPage = () => {
                 Total Revenue
               </Typography>
               <Typography variant="h4" color="success.main">
-                ${totalRevenue.toLocaleString()}
+                ₹{totalRevenue.toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
@@ -122,7 +122,7 @@ const PaymentsPage = () => {
                 Pending Payments
               </Typography>
               <Typography variant="h4" color="warning.main">
-                ${pendingAmount.toLocaleString()}
+                ₹{pendingAmount.toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
@@ -134,7 +134,7 @@ const PaymentsPage = () => {
                 Overdue Amount
               </Typography>
               <Typography variant="h4" color="error.main">
-                ${overdueAmount.toLocaleString()}
+                ₹{overdueAmount.toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
@@ -246,7 +246,7 @@ const PaymentsPage = () => {
               <TableRow key={payment.id}>
                 <TableCell>{payment.tenant}</TableCell>
                 <TableCell>{payment.property}</TableCell>
-                <TableCell>${payment.amount.toLocaleString()}</TableCell>
+                <TableCell>₹{payment.amount.toLocaleString()}</TableCell>
                 <TableCell>{new Date(payment.dueDate).toLocaleDateString()}</TableCell>
                 <TableCell>
                   {payment.paidDate ? new Date(payment.paidDate).toLocaleDateString() : "-"}

@@ -142,7 +142,7 @@ const PropertiesPage = () => {
                   Type: {property.type}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  Rent: ${property.rent}/month
+                  Rent: ₹{property.rent}/month
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 2 }}>
                   Tenants: {property.tenants}

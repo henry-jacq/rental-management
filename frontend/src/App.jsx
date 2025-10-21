@@ -5,6 +5,7 @@ import { CssBaseline, CircularProgress, Box } from "@mui/material";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import AuthGuard from "./components/AuthGuard";
+import { UserProvider } from "./contexts/UserContext";
 
 // Lazy load components
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
@@ -172,9 +173,10 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
+      <UserProvider>
+        <Router>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
             <Route path="/" element={
               <AuthGuard>
                 <Login />
@@ -315,9 +317,10 @@ function App() {
                 </ProtectedRoute>
               </Suspense>
             } />
-          </Routes>
-        </Suspense>
-      </Router>
+            </Routes>
+          </Suspense>
+        </Router>
+      </UserProvider>
     </ThemeProvider>
   );
 }

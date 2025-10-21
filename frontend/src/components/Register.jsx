@@ -27,7 +27,7 @@ const Register = memo(() => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
-    
+
     try {
       const res = await axios.post("http://localhost:5000/api/auth/register", { name, email, password, role });
       setMessage(res.data.message);
@@ -43,7 +43,6 @@ const Register = memo(() => {
     <Box
       sx={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -72,7 +71,7 @@ const Register = memo(() => {
               {message}
             </Alert>
           )}
-          
+
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
             <Grid spacing={2}>
               <Grid item xs={12} sx={{ mb: 2 }}>

@@ -189,7 +189,7 @@ const TenantsPage = () => {
                 Monthly Revenue
               </Typography>
               <Typography variant="h4">
-                ${tenants.reduce((sum, t) => sum + (t.rent || 0), 0).toLocaleString()}
+                ₹{tenants.reduce((sum, t) => sum + (t.rent || 0), 0).toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
@@ -221,7 +221,7 @@ const TenantsPage = () => {
                         {tenant.name}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        ${tenant.rent}/month
+                        ₹{tenant.rent}/month
                       </Typography>
                     </Box>
                   </Box>

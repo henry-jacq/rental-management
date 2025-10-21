@@ -110,7 +110,7 @@ const PaymentsPage = () => {
                 Current Due
               </Typography>
               <Typography variant="h4" color="warning.main">
-                ${pendingPayment?.amount || 0}
+                ₹{pendingPayment?.amount || 0}
               </Typography>
               {pendingPayment && (
                 <Typography variant="body2" color="text.secondary">
@@ -127,7 +127,7 @@ const PaymentsPage = () => {
                 Total Paid
               </Typography>
               <Typography variant="h4" color="success.main">
-                ${totalPaid.toLocaleString()}
+                ₹{totalPaid.toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
@@ -165,7 +165,7 @@ const PaymentsPage = () => {
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Box>
                 <Typography variant="h6" gutterBottom>
-                  Payment Due: ${pendingPayment.amount}
+                  Payment Due: ₹{pendingPayment.amount}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Due Date: {new Date(pendingPayment.dueDate).toLocaleDateString()}
@@ -203,7 +203,7 @@ const PaymentsPage = () => {
             {payments.map((payment) => (
               <TableRow key={payment.id}>
                 <TableCell>{payment.month}</TableCell>
-                <TableCell>${payment.amount.toLocaleString()}</TableCell>
+                <TableCell>₹{payment.amount.toLocaleString()}</TableCell>
                 <TableCell>{new Date(payment.dueDate).toLocaleDateString()}</TableCell>
                 <TableCell>
                   {payment.paidDate ? new Date(payment.paidDate).toLocaleDateString() : "-"}
