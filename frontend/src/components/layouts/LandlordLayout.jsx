@@ -34,6 +34,7 @@ const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/landlord" },
   { text: "Properties", icon: <HomeIcon />, path: "/landlord/properties" },
   { text: "Tenants", icon: <PeopleIcon />, path: "/landlord/tenants" },
+  { text: "Agreements", icon: <AssessmentIcon />, path: "/landlord/agreements" },
   { text: "Payments", icon: <PaymentIcon />, path: "/landlord/payments" },
   { text: "Maintenance", icon: <BuildIcon />, path: "/landlord/maintenance" },
   { text: "Reports", icon: <AssessmentIcon />, path: "/landlord/reports" },
@@ -57,16 +58,15 @@ const LandlordLayout = ({ children }) => {
   };
 
   const drawer = (
-    <Box>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" color="primary">
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <Box sx={{ p: 3, borderBottom: "1px solid", borderColor: "divider" }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, color: "text.primary" }}>
           Landlord Portal
         </Typography>
-      </Toolbar>
-      <Divider />
-      <List>
+      </Box>
+      <List sx={{ flexGrow: 1, p: 2 }}>
         {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
+          <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
             <ListItemButton
               selected={location.pathname === item.path}
               onClick={() => {
@@ -74,61 +74,91 @@ const LandlordLayout = ({ children }) => {
                 if (isMobile) setMobileOpen(false);
               }}
               sx={{
+                borderRadius: 1,
+                minHeight: 44,
                 "&.Mui-selected": {
-                  backgroundColor: theme.palette.primary.main,
+                  backgroundColor: "primary.main",
                   color: "white",
-                  "&:hover": {
-                    backgroundColor: theme.palette.primary.dark,
+                  "& .MuiListItemIcon-root": {
+                    color: "white",
                   },
+                },
+                "&:hover": {
+                  backgroundColor: location.pathname === item.path ? "primary.dark" : "action.hover",
                 },
               }}
             >
-              <ListItemIcon
-                sx={{
-                  color: location.pathname === item.path ? "white" : "inherit",
-                }}
-              >
+              <ListItemIcon sx={{ minWidth: 36 }}>
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemText 
+                primary={item.text}
+                primaryTypographyProps={{
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
-        <Divider sx={{ my: 1 }} />
+      </List>
+      <Box sx={{ p: 2, borderTop: "1px solid", borderColor: "divider" }}>
         <ListItem disablePadding>
-          <ListItemButton onClick={handleLogout}>
-            <ListItemIcon>
+          <ListItemButton 
+            onClick={handleLogout}
+            sx={{
+              borderRadius: 1,
+              minHeight: 44,
+              "&:hover": {
+                backgroundColor: "action.hover",
+              },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 36 }}>
               <LogoutIcon />
             </ListItemIcon>
-            <ListItemText primary="Logout" />
+            <ListItemText 
+              primary="Logout"
+              primaryTypographyProps={{
+                fontSize: "0.875rem",
+                fontWeight: 500,
+              }}
+            />
           </ListItemButton>
         </ListItem>
-      </List>
+      </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <AppBar
         position="fixed"
+        elevation={2}
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
+          backgroundColor: "background.paper",
+          color: "text.primary",
+          borderBottom: "1px solid",
+          borderColor: "divider",
         }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: "none" } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            Rental Management System
-          </Typography>
+        <Toolbar sx={{ justifyContent: "space-between", minHeight: 64 }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { md: "none" } }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500 }}>
+              Rental Management
+            </Typography>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box
@@ -147,6 +177,7 @@ const LandlordLayout = ({ children }) => {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: drawerWidth,
+              backgroundColor: "background.paper",
             },
           }}
         >
@@ -159,6 +190,9 @@ const LandlordLayout = ({ children }) => {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: drawerWidth,
+              backgroundColor: "background.paper",
+              borderRight: "1px solid",
+              borderColor: "divider",
             },
           }}
           open
@@ -170,12 +204,14 @@ const LandlordLayout = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          backgroundColor: "background.default",
           width: { md: `calc(100% - ${drawerWidth}px)` },
         }}
       >
         <Toolbar />
-        {children}
+        <Box sx={{ p: 4 }}>
+          {children}
+        </Box>
       </Box>
     </Box>
   );

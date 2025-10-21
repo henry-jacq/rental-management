@@ -6,9 +6,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import AuthGuard from "./components/AuthGuard";
 
-// Lazy load dashboard components for better performance
-const TenantDashboard = lazy(() => import("./components/TenantDashboard"));
-const LandlordDashboard = lazy(() => import("./components/LandlordDashboard"));
+// Lazy load components
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 
 // Lazy load layouts
@@ -16,15 +14,17 @@ const LandlordLayout = lazy(() => import("./components/layouts/LandlordLayout"))
 const TenantLayout = lazy(() => import("./components/layouts/TenantLayout"));
 
 // Lazy load landlord pages
+const LandlordDashboard = lazy(() => import("./pages/landlord/DashboardPage"));
 const PropertiesPage = lazy(() => import("./pages/landlord/PropertiesPage"));
 const TenantsPage = lazy(() => import("./pages/landlord/TenantsPage"));
+const AgreementsPage = lazy(() => import("./pages/landlord/AgreementsPage"));
 const PaymentsPage = lazy(() => import("./pages/landlord/PaymentsPage"));
 const LandlordMaintenancePage = lazy(() => import("./pages/landlord/MaintenancePage"));
 const ReportsPage = lazy(() => import("./pages/landlord/ReportsPage"));
 const LandlordSettingsPage = lazy(() => import("./pages/landlord/SettingsPage"));
 
 // Lazy load tenant pages
-const ProfilePage = lazy(() => import("./pages/tenant/ProfilePage"));
+const TenantDashboard = lazy(() => import("./pages/tenant/DashboardPage"));
 const TenantPaymentsPage = lazy(() => import("./pages/tenant/PaymentsPage"));
 const MaintenancePage = lazy(() => import("./pages/tenant/MaintenancePage"));
 const DocumentsPage = lazy(() => import("./pages/tenant/DocumentsPage"));
@@ -34,17 +34,125 @@ const TenantSettingsPage = lazy(() => import("./pages/tenant/SettingsPage"));
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#667eea",
+      main: "#1976D2",
     },
     secondary: {
-      main: "#764ba2",
+      main: "#388E3C",
+    },
+    error: {
+      main: "#D32F2F",
+    },
+    warning: {
+      main: "#FFC107",
     },
     background: {
-      default: "#f5f5f5",
+      default: "#FAFAFA",
+      paper: "#FFFFFF",
     },
+    text: {
+      primary: "#1A1A1A",
+      secondary: "#6B7280",
+    },
+    divider: "#E5E7EB",
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h4: {
+      fontWeight: 600,
+      fontSize: '1.75rem',
+      lineHeight: 1.2,
+      letterSpacing: '-0.025em',
+    },
+    h5: {
+      fontWeight: 500,
+      fontSize: '1.5rem',
+      lineHeight: 1.3,
+      letterSpacing: '-0.025em',
+    },
+    h6: {
+      fontWeight: 500,
+      fontSize: '1.125rem',
+      lineHeight: 1.4,
+      letterSpacing: '0em',
+    },
+    body1: {
+      fontSize: '0.875rem',
+      lineHeight: 1.5,
+    },
+    body2: {
+      fontSize: '0.75rem',
+      lineHeight: 1.4,
+    },
+    button: {
+      textTransform: 'none',
+      fontWeight: 500,
+      fontSize: '0.875rem',
+    },
+  },
+  spacing: 8,
+  shape: {
+    borderRadius: 6,
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+          border: '1px solid #F3F4F6',
+          borderRadius: 8,
+          '&:hover': {
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          },
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 6,
+          textTransform: 'none',
+          fontWeight: 500,
+          padding: '8px 16px',
+        },
+        contained: {
+          boxShadow: 'none',
+          '&:hover': {
+            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+          },
+        },
+        outlined: {
+          borderColor: '#E5E7EB',
+          '&:hover': {
+            borderColor: '#D1D5DB',
+            backgroundColor: '#F9FAFB',
+          },
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          boxShadow: 'none',
+          borderBottom: '1px solid #E5E7EB',
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          borderRight: '1px solid #E5E7EB',
+          boxShadow: 'none',
+        },
+      },
+    },
   },
 });
 
@@ -115,6 +223,15 @@ function App() {
                 </ProtectedRoute>
               </Suspense>
             } />
+            <Route path="/landlord/agreements" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ProtectedRoute role="landlord">
+                  <LandlordLayout>
+                    <AgreementsPage />
+                  </LandlordLayout>
+                </ProtectedRoute>
+              </Suspense>
+            } />
             <Route path="/landlord/payments" element={
               <Suspense fallback={<LoadingFallback />}>
                 <ProtectedRoute role="landlord">
@@ -153,15 +270,6 @@ function App() {
             } />
 
             {/* Tenant Routes */}
-            <Route path="/tenant/profile" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ProtectedRoute role="tenant">
-                  <TenantLayout>
-                    <ProfilePage />
-                  </TenantLayout>
-                </ProtectedRoute>
-              </Suspense>
-            } />
             <Route path="/tenant/payments" element={
               <Suspense fallback={<LoadingFallback />}>
                 <ProtectedRoute role="tenant">

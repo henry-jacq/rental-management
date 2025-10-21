@@ -1,141 +1,74 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
+  Grid,
   Card,
   CardContent,
-  Grid,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
   MenuItem,
-  Alert,
-  Fab,
+  Avatar,
 } from "@mui/material";
 import {
   Build as BuildIcon,
   Add as AddIcon,
-  Edit as EditIcon,
-  Visibility as ViewIcon,
+  Schedule as ScheduleIcon,
+  CheckCircle as CheckCircleIcon,
 } from "@mui/icons-material";
 
 const MaintenancePage = () => {
-  const [requests, setRequests] = useState([]);
-  const [openRequest, setOpenRequest] = useState(false);
-  const [editingRequest, setEditingRequest] = useState(null);
-  const [formData, setFormData] = useState({
+  const [openDialog, setOpenDialog] = useState(false);
+  const [newRequest, setNewRequest] = useState({
     title: "",
     description: "",
     priority: "Medium",
-    category: "General",
+    category: "Plumbing",
   });
-  const [message, setMessage] = useState("");
 
-  // Mock data - replace with API calls
-  useEffect(() => {
-    setRequests([
-      {
-        id: 1,
-        title: "Leaky Faucet",
-        description: "Kitchen faucet is dripping constantly",
-        category: "Plumbing",
-        priority: "High",
-        status: "In Progress",
-        createdAt: "2024-11-25",
-        updatedAt: "2024-11-28",
-        assignedTo: "Maintenance Team",
-        estimatedCompletion: "2024-12-02",
-      },
-      {
-        id: 2,
-        title: "Broken Light Switch",
-        description: "Bedroom light switch is not working",
-        category: "Electrical",
-        priority: "Medium",
-        status: "Pending",
-        createdAt: "2024-11-30",
-        updatedAt: "2024-11-30",
-        assignedTo: null,
-        estimatedCompletion: null,
-      },
-      {
-        id: 3,
-        title: "AC Not Cooling",
-        description: "Air conditioning unit is not cooling properly",
-        category: "HVAC",
-        priority: "High",
-        status: "Completed",
-        createdAt: "2024-11-20",
-        updatedAt: "2024-11-25",
-        assignedTo: "HVAC Specialist",
-        estimatedCompletion: "2024-11-25",
-      },
-    ]);
-  }, []);
-
-  const handleSubmit = () => {
-    if (editingRequest) {
-      setRequests(requests.map(r => 
-        r.id === editingRequest.id 
-          ? { ...r, ...formData, updatedAt: new Date().toISOString().split('T')[0] }
-          : r
-      ));
-    } else {
-      const newRequest = {
-        id: Date.now(),
-        ...formData,
-        status: "Pending",
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: new Date().toISOString().split('T')[0],
-        assignedTo: null,
-        estimatedCompletion: null,
-      };
-      setRequests([newRequest, ...requests]);
-    }
-    setMessage(editingRequest ? "Request updated successfully!" : "Request submitted successfully!");
-    setOpenRequest(false);
-    setEditingRequest(null);
-    setFormData({ title: "", description: "", priority: "Medium", category: "General" });
-    setTimeout(() => setMessage(""), 3000);
-  };
-
-  const handleEdit = (request) => {
-    setEditingRequest(request);
-    setFormData({
-      title: request.title,
-      description: request.description,
-      priority: request.priority,
-      category: request.category,
-    });
-    setOpenRequest(true);
-  };
-
-  const handleClose = () => {
-    setOpenRequest(false);
-    setEditingRequest(null);
-    setFormData({ title: "", description: "", priority: "Medium", category: "General" });
-  };
+  const [requests] = useState([
+    {
+      id: 1,
+      title: "Leaky Kitchen Faucet",
+      description: "The kitchen faucet has been dripping constantly",
+      priority: "Medium",
+      status: "In Progress",
+      category: "Plumbing",
+      dateSubmitted: "2024-10-15",
+      assignedTo: "Mike's Plumbing",
+    },
+    {
+      id: 2,
+      title: "Broken Window Lock",
+      description: "Window lock in bedroom is not functioning properly",
+      priority: "Low",
+      status: "Completed",
+      category: "Hardware",
+      dateSubmitted: "2024-10-10",
+      assignedTo: "Handyman Services",
+    },
+    {
+      id: 3,
+      title: "Heating Issue",
+      description: "Heating system not working properly in living room",
+      priority: "High",
+      status: "Open",
+      category: "HVAC",
+      dateSubmitted: "2024-10-20",
+      assignedTo: "Not assigned",
+    },
+  ]);
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Pending": return "warning";
-      case "In Progress": return "info";
+      case "Open": return "error";
+      case "In Progress": return "warning";
       case "Completed": return "success";
-      case "Cancelled": return "error";
       default: return "default";
     }
   };
@@ -149,209 +82,219 @@ const MaintenancePage = () => {
     }
   };
 
-  const pendingCount = requests.filter(r => r.status === "Pending").length;
-  const inProgressCount = requests.filter(r => r.status === "In Progress").length;
-  const completedCount = requests.filter(r => r.status === "Completed").length;
+  const handleSubmitRequest = () => {
+    // Handle form submission
+    console.log("New request:", newRequest);
+    setOpenDialog(false);
+    setNewRequest({ title: "", description: "", priority: "Medium", category: "Plumbing" });
+  };
+
+  const stats = {
+    total: requests.length,
+    open: requests.filter(r => r.status === "Open").length,
+    inProgress: requests.filter(r => r.status === "In Progress").length,
+    completed: requests.filter(r => r.status === "Completed").length,
+  };
+
+  const StatCard = ({ icon, title, value, color = "primary" }) => (
+    <Card>
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              {title}
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 600 }}>
+              {value}
+            </Typography>
+          </Box>
+          <Avatar sx={{ bgcolor: `${color}.main`, width: 48, height: 48 }}>
+            {icon}
+          </Avatar>
+        </Box>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <Box>
-      <Typography variant="h4" component="h1" sx={{ mb: 3 }}>
-        Maintenance Requests
-      </Typography>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+          Maintenance Requests
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Submit and track maintenance requests for your unit.
+        </Typography>
+      </Box>
 
-      {message && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          {message}
-        </Alert>
-      )}
-
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Pending
-              </Typography>
-              <Typography variant="h4" color="warning.main">
-                {pendingCount}
-              </Typography>
-            </CardContent>
-          </Card>
+      {/* Stats Grid */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} lg={3}>
+          <StatCard
+            icon={<BuildIcon />}
+            title="Total Requests"
+            value={stats.total}
+            color="primary"
+          />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                In Progress
-              </Typography>
-              <Typography variant="h4" color="info.main">
-                {inProgressCount}
-              </Typography>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6} lg={3}>
+          <StatCard
+            icon={<ScheduleIcon />}
+            title="Open"
+            value={stats.open}
+            color="error"
+          />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Completed
-              </Typography>
-              <Typography variant="h4" color="success.main">
-                {completedCount}
-              </Typography>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6} lg={3}>
+          <StatCard
+            icon={<BuildIcon />}
+            title="In Progress"
+            value={stats.inProgress}
+            color="warning"
+          />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Requests
-              </Typography>
-              <Typography variant="h4">
-                {requests.length}
-              </Typography>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6} lg={3}>
+          <StatCard
+            icon={<CheckCircleIcon />}
+            title="Completed"
+            value={stats.completed}
+            color="success"
+          />
         </Grid>
       </Grid>
 
-      {/* Requests Table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Title</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Priority</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Assigned To</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      {/* Requests List */}
+      <Card>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+              My Requests
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setOpenDialog(true)}
+            >
+              New Request
+            </Button>
+          </Box>
+
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {requests.map((request) => (
-              <TableRow key={request.id}>
-                <TableCell>
+              <Box
+                key={request.id}
+                sx={{
+                  p: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                  "&:hover": {
+                    backgroundColor: "action.hover",
+                  },
+                }}
+              >
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
                   <Box>
-                    <Typography variant="subtitle2">
+                    <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
                       {request.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 200 }}>
-                      {request.description.length > 50 
-                        ? `${request.description.substring(0, 50)}...` 
-                        : request.description
-                      }
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {request.description}
                     </Typography>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      <Chip
+                        label={request.status}
+                        color={getStatusColor(request.status)}
+                        size="small"
+                      />
+                      <Chip
+                        label={request.priority}
+                        color={getPriorityColor(request.priority)}
+                        variant="outlined"
+                        size="small"
+                      />
+                      <Chip
+                        label={request.category}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Box>
                   </Box>
-                </TableCell>
-                <TableCell>{request.category}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={request.priority}
-                    color={getPriorityColor(request.priority)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={request.status}
-                    color={getStatusColor(request.status)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{request.assignedTo || "-"}</TableCell>
-                <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <Button
-                    size="small"
-                    startIcon={<ViewIcon />}
-                    onClick={() => handleEdit(request)}
-                  >
-                    View
-                  </Button>
-                </TableCell>
-              </TableRow>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Submitted: {request.dateSubmitted}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Assigned to: {request.assignedTo}
+                  </Typography>
+                </Box>
+              </Box>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </Box>
+        </CardContent>
+      </Card>
 
-      {/* Add Request Dialog */}
-      <Dialog open={openRequest} onClose={handleClose} maxWidth="sm" fullWidth>
+      {/* New Request Dialog */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {editingRequest ? "View/Edit Request" : "New Maintenance Request"}
+          <Typography variant="h6" sx={{ fontWeight: 500 }}>
+            Submit New Maintenance Request
+          </Typography>
         </DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Title"
-            fullWidth
-            variant="outlined"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="Description"
-            multiline
-            rows={4}
-            fullWidth
-            variant="outlined"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            sx={{ mb: 2 }}
-          />
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Category</InputLabel>
-            <Select
-              value={formData.category}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
+            <TextField
+              fullWidth
+              label="Request Title"
+              value={newRequest.title}
+              onChange={(e) => setNewRequest(prev => ({ ...prev, title: e.target.value }))}
+            />
+            <TextField
+              fullWidth
+              label="Description"
+              multiline
+              rows={3}
+              value={newRequest.description}
+              onChange={(e) => setNewRequest(prev => ({ ...prev, description: e.target.value }))}
+            />
+            <TextField
+              fullWidth
+              select
               label="Category"
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              value={newRequest.category}
+              onChange={(e) => setNewRequest(prev => ({ ...prev, category: e.target.value }))}
             >
-              <MenuItem value="General">General</MenuItem>
               <MenuItem value="Plumbing">Plumbing</MenuItem>
               <MenuItem value="Electrical">Electrical</MenuItem>
               <MenuItem value="HVAC">HVAC</MenuItem>
-              <MenuItem value="Appliance">Appliance</MenuItem>
-              <MenuItem value="Structural">Structural</MenuItem>
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel>Priority</InputLabel>
-            <Select
-              value={formData.priority}
+              <MenuItem value="Hardware">Hardware</MenuItem>
+              <MenuItem value="Appliances">Appliances</MenuItem>
+              <MenuItem value="Other">Other</MenuItem>
+            </TextField>
+            <TextField
+              fullWidth
+              select
               label="Priority"
-              onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+              value={newRequest.priority}
+              onChange={(e) => setNewRequest(prev => ({ ...prev, priority: e.target.value }))}
             >
               <MenuItem value="Low">Low</MenuItem>
               <MenuItem value="Medium">Medium</MenuItem>
               <MenuItem value="High">High</MenuItem>
-              <MenuItem value="Emergency">Emergency</MenuItem>
-            </Select>
-          </FormControl>
+            </TextField>
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingRequest ? "Update" : "Submit"}
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button onClick={() => setOpenDialog(false)} variant="outlined">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmitRequest} variant="contained" sx={{ ml: 1 }}>
+            Submit Request
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        aria-label="add"
-        sx={{ position: "fixed", bottom: 16, right: 16 }}
-        onClick={() => setOpenRequest(true)}
-      >
-        <AddIcon />
-      </Fab>
     </Box>
   );
 };
