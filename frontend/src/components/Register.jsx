@@ -65,10 +65,17 @@ const Register = memo(() => {
           <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
             Join our rental management platform
           </Typography>
+
+
+          {message && (
+            <Alert severity={message.includes("successfully") ? "success" : "error"} sx={{ mt: 2, mb: 4 }}>
+              {message}
+            </Alert>
+          )}
           
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
+            <Grid spacing={2}>
+              <Grid item xs={12} sx={{ mb: 2 }}>
                 <TextField
                   fullWidth
                   label="Full Name"
@@ -78,7 +85,7 @@ const Register = memo(() => {
                   variant="outlined"
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sx={{ mb: 2 }}>
                 <TextField
                   fullWidth
                   label="Email"
@@ -89,7 +96,7 @@ const Register = memo(() => {
                   variant="outlined"
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sx={{ mb: 2 }}>
                 <TextField
                   fullWidth
                   label="Password"
@@ -100,7 +107,7 @@ const Register = memo(() => {
                   variant="outlined"
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sx={{ mb: 2 }}>
                 <FormControl fullWidth variant="outlined">
                   <InputLabel>Role</InputLabel>
                   <Select
@@ -113,7 +120,7 @@ const Register = memo(() => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sx={{ mb: 2 }}>
                 <Button
                   type="submit"
                   fullWidth
@@ -135,11 +142,6 @@ const Register = memo(() => {
             </Link>
           </Typography>
 
-          {message && (
-            <Alert severity={message.includes("successfully") ? "success" : "error"} sx={{ mt: 2 }}>
-              {message}
-            </Alert>
-          )}
         </Paper>
       </Container>
     </Box>

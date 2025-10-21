@@ -62,10 +62,16 @@ const Login = memo(() => {
           <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
             Sign in to your account
           </Typography>
+
+          {message && (
+            <Alert severity="error" sx={{ mt: 2, mb: 4 }}>
+              {message}
+            </Alert>
+          )}
           
           <Box component="form" onSubmit={handleLogin} sx={{ mt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
+            <Grid spacing={2}>
+              <Grid item xs={12} sx={{ mb: 2 }}>
                 <TextField
                   fullWidth
                   label="Email"
@@ -109,11 +115,6 @@ const Login = memo(() => {
             </Link>
           </Typography>
 
-          {message && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {message}
-            </Alert>
-          )}
         </Paper>
       </Container>
     </Box>
