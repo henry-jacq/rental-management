@@ -1,5 +1,6 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
+import { Box, CircularProgress, Typography, Paper } from "@mui/material";
 
 const ProtectedRoute = ({ children, role }) => {
   const token = localStorage.getItem("token");
@@ -8,7 +9,11 @@ const ProtectedRoute = ({ children, role }) => {
   if(!token) return <Navigate to="/" />;
   if(role && userRole !== role) return <Navigate to="/" />;
 
-  return children;
+  return (
+    <Box>
+      {children}
+    </Box>
+  );
 };
 
 export default ProtectedRoute;

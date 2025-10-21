@@ -1,74 +1,149 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+import Alert from "@mui/material/Alert";
+import Container from "@mui/material/Container";
+import Grid from "@mui/material/Grid";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
 
-const Register = () => {
+const Register = memo(() => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("tenant");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setMessage("");
+    
     try {
       const res = await axios.post("http://localhost:5000/api/auth/register", { name, email, password, role });
       setMessage(res.data.message);
       setTimeout(() => navigate("/"), 1000);
     } catch (err) {
       setMessage(err.response?.data?.msg || "Error occurred");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      height: "100vh",
-      background: "linear-gradient(to right, #667eea, #764ba2)",
-      fontFamily: "Segoe UI, sans-serif"
-    }}>
-      <div style={{
-        background: "#fff",
-        padding: "40px",
-        borderRadius: "12px",
-        boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-        width: "350px",
-        textAlign: "center"
-      }}>
-        <h2 style={{ marginBottom: "30px", color: "#333" }}>Register</h2>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column" }}>
-          <input type="text" placeholder="Name" value={name} onChange={e => setName(e.target.value)} required
-            style={{ padding: "12px", margin: "8px 0", borderRadius: "8px", border: "1px solid #ccc", fontSize: "14px" }}/>
-          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required
-            style={{ padding: "12px", margin: "8px 0", borderRadius: "8px", border: "1px solid #ccc", fontSize: "14px" }}/>
-          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required
-            style={{ padding: "12px", margin: "8px 0", borderRadius: "8px", border: "1px solid #ccc", fontSize: "14px" }}/>
-          <select value={role} onChange={e => setRole(e.target.value)}
-            style={{ padding: "12px", margin: "8px 0", borderRadius: "8px", border: "1px solid #ccc", fontSize: "14px" }}>
-            <option value="tenant">Tenant</option>
-            <option value="landlord">Landlord</option>
-          </select>
-          <button type="submit" style={{
-            padding: "12px",
-            marginTop: "15px",
-            borderRadius: "8px",
-            border: "none",
-            backgroundColor: "#667eea",
-            color: "#fff",
-            fontSize: "16px",
-            cursor: "pointer"
-          }}>Register</button>
-        </form>
-        <p style={{ marginTop: "15px", fontSize: "14px" }}>
-          Already have an account? <Link to="/" style={{ color: "#667eea" }}>Login here</Link>
-        </p>
-        {message && <p style={{ color: "red", marginTop: "10px" }}>{message}</p>}
-      </div>
-    </div>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        py: 3,
+      }}
+    >
+      <Container maxWidth="sm">
+        <Paper
+          elevation={10}
+          sx={{
+            p: 4,
+            borderRadius: 2,
+            textAlign: "center",
+          }}
+        >
+          <Typography variant="h4" component="h1" gutterBottom color="primary">
+            Create Account
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            Join our rental management platform
+          </Typography>
+          
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  variant="outlined"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  variant="outlined"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  variant="outlined"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    label="Role"
+                  >
+                    <MenuItem value="tenant">Tenant</MenuItem>
+                    <MenuItem value="landlord">Landlord</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  disabled={loading}
+                  sx={{ mt: 2, mb: 2 }}
+                >
+                  {loading ? "Creating Account..." : "Create Account"}
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            Already have an account?{" "}
+            <Link to="/" style={{ color: "#667eea", textDecoration: "none" }}>
+              Login here
+            </Link>
+          </Typography>
+
+          {message && (
+            <Alert severity={message.includes("successfully") ? "success" : "error"} sx={{ mt: 2 }}>
+              {message}
+            </Alert>
+          )}
+        </Paper>
+      </Container>
+    </Box>
   );
-};
+});
 
 export default Register;
