@@ -56,7 +56,7 @@ const AgreementsPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/landlord/agreements", {
+      const response = await axios.get("http://localhost:5000/api/landlord-agreements", {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -74,7 +74,7 @@ const AgreementsPage = () => {
   const fetchProperties = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/landlord/properties", {
+      const response = await axios.get("http://localhost:5000/api/landlord-properties", {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProperties(response.data || []);
@@ -148,16 +148,29 @@ const AgreementsPage = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/landlord/agreements/${agreementId}`, {
+      console.log("Deleting agreement:", agreementId);
+      
+      await axios.delete(`http://localhost:5000/api/landlord-agreements/${agreementId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      console.log("Agreement deleted successfully");
       
       // Remove from local state
       setAgreements(prev => prev.filter(agreement => agreement._id !== agreementId));
       setError("");
     } catch (error) {
       console.error("Error deleting agreement:", error);
-      setError("Failed to delete agreement");
+      
+      // Extract meaningful error message
+      let errorMessage = "Failed to delete agreement";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -166,23 +179,31 @@ const AgreementsPage = () => {
       const token = localStorage.getItem("token");
       let response;
 
+      console.log("Saving agreement in mode:", mode);
+      
       if (mode === 'create') {
-        response = await axios.post("http://localhost:5000/api/landlord/agreements", formData, {
+        console.log("Creating new agreement...");
+        response = await axios.post("http://localhost:5000/api/landlord-agreements", formData, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'
           }
         });
         
+        console.log("Agreement created successfully:", response.data);
+        
         // Add new agreement to the list
         setAgreements(prev => [response.data.agreement, ...prev]);
       } else if (mode === 'edit') {
-        response = await axios.put(`http://localhost:5000/api/landlord/agreements/${selectedAgreement._id}`, formData, {
+        console.log("Updating agreement:", selectedAgreement._id);
+        response = await axios.put(`http://localhost:5000/api/landlord-agreements/${selectedAgreement._id}`, formData, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'
           }
         });
+        
+        console.log("Agreement updated successfully:", response.data);
         
         // Update agreement in the list
         setAgreements(prev => prev.map(agreement => 
@@ -193,7 +214,18 @@ const AgreementsPage = () => {
       setError("");
     } catch (error) {
       console.error("Error saving agreement:", error);
-      setError("Failed to save agreement");
+      
+      // Extract meaningful error message
+      let errorMessage = "Failed to save agreement";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
       throw error; // Re-throw to let dialog handle the error
     }
   };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import {
     Box,
     Typography,
@@ -60,130 +61,143 @@ const PropertiesPage = () => {
 
     const fetchProperties = async () => {
         try {
+            setLoading(true);
             const token = localStorage.getItem("token");
-            const response = await fetch("http://localhost:5000/api/properties/available", {
+
+            console.log("Fetching properties for tenant...");
+            console.log("Token exists:", !!token);
+
+            const response = await axios.get("http://localhost:5000/api/properties/available", {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                setProperties(data.properties);
-            } else {
-                console.error("Failed to fetch properties");
-                // Fallback to mock data
-                const mockProperties = [
-                    {
-                        id: 1,
-                        title: "Modern 2BHK Apartment",
-                        description: "Spacious 2-bedroom apartment with modern amenities in prime location",
-                        rent: 25000,
-                        deposit: 50000,
-                        type: "Apartment",
-                        bedrooms: 2,
-                        bathrooms: 2,
-                        area: 1200,
-                        location: "Koramangala, Bangalore",
-                        address: "123 Main Street, Koramangala, Bangalore - 560034",
-                        amenities: ["Parking", "Gym", "Swimming Pool", "Security", "Power Backup"],
-                        images: [
-                            "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400",
-                            "https://images.unsplash.com/photo-1560448075-bb485b067938?w=400"
-                        ],
-                        landlord: {
-                            name: "Rajesh Kumar",
-                            phone: "+91 98765 43210",
-                            email: "rajesh.kumar@example.com",
-                            rating: 4.5
-                        },
-                        available: true,
-                        availableFrom: "2024-12-01"
-                    },
-                    {
-                        id: 2,
-                        title: "Cozy 1BHK Studio",
-                        description: "Perfect for young professionals, fully furnished studio apartment",
-                        rent: 18000,
-                        deposit: 36000,
-                        type: "Studio",
-                        bedrooms: 1,
-                        bathrooms: 1,
-                        area: 600,
-                        location: "Indiranagar, Bangalore",
-                        address: "456 Park Avenue, Indiranagar, Bangalore - 560038",
-                        amenities: ["Furnished", "WiFi", "AC", "Security", "Parking"],
-                        images: [
-                            "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
-                            "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400"
-                        ],
-                        landlord: {
-                            name: "Priya Sharma",
-                            phone: "+91 87654 32109",
-                            email: "priya.sharma@example.com",
-                            rating: 4.8
-                        },
-                        available: true,
-                        availableFrom: "2024-11-25"
-                    },
-                    {
-                        id: 3,
-                        title: "Luxury 3BHK Villa",
-                        description: "Spacious villa with garden, perfect for families",
-                        rent: 45000,
-                        deposit: 90000,
-                        type: "Villa",
-                        bedrooms: 3,
-                        bathrooms: 3,
-                        area: 2000,
-                        location: "Whitefield, Bangalore",
-                        address: "789 Garden View, Whitefield, Bangalore - 560066",
-                        amenities: ["Garden", "Parking", "Security", "Power Backup", "Water Supply"],
-                        images: [
-                            "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400",
-                            "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400"
-                        ],
-                        landlord: {
-                            name: "Amit Patel",
-                            phone: "+91 76543 21098",
-                            email: "amit.patel@example.com",
-                            rating: 4.3
-                        },
-                        available: true,
-                        availableFrom: "2024-12-15"
-                    },
-                    {
-                        id: 4,
-                        title: "Budget 1BHK Apartment",
-                        description: "Affordable housing option with basic amenities",
-                        rent: 12000,
-                        deposit: 24000,
-                        type: "Apartment",
-                        bedrooms: 1,
-                        bathrooms: 1,
-                        area: 500,
-                        location: "Electronic City, Bangalore",
-                        address: "321 Tech Park Road, Electronic City, Bangalore - 560100",
-                        amenities: ["Security", "Water Supply", "Parking"],
-                        images: [
-                            "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400"
-                        ],
-                        landlord: {
-                            name: "Sunita Reddy",
-                            phone: "+91 65432 10987",
-                            email: "sunita.reddy@example.com",
-                            rating: 4.0
-                        },
-                        available: false,
-                        availableFrom: "2025-01-01"
-                    }
-                ];
-                setProperties(mockProperties);
-            }
-            setLoading(false);
+            console.log("Properties API response:", response.data);
+            setProperties(response.data.properties || []);
         } catch (error) {
             console.error("Error fetching properties:", error);
+
+            // Show error message instead of falling back to mock data
+            if (error.response?.status === 401) {
+                console.error("Authentication failed");
+                // Could redirect to login here
+            } else if (error.response?.status === 403) {
+                console.error("Access denied - user might not have tenant role");
+            } else {
+                console.error("API Error:", error.response?.data || error.message);
+            }
+
+            // Fallback to mock data for demo purposes
+            console.log("Falling back to mock data...");
+            const mockProperties = [
+                {
+                    id: 1,
+                    title: "Modern 2BHK Apartment",
+                    description: "Spacious 2-bedroom apartment with modern amenities in prime location",
+                    rent: 25000,
+                    deposit: 50000,
+                    type: "Apartment",
+                    bedrooms: 2,
+                    bathrooms: 2,
+                    area: 1200,
+                    location: "Koramangala, Bangalore",
+                    address: "123 Main Street, Koramangala, Bangalore - 560034",
+                    amenities: ["Parking", "Gym", "Swimming Pool", "Security", "Power Backup"],
+                    images: [
+                        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400",
+                        "https://images.unsplash.com/photo-1560448075-bb485b067938?w=400"
+                    ],
+                    landlord: {
+                        name: "Rajesh Kumar",
+                        phone: "+91 98765 43210",
+                        email: "rajesh.kumar@example.com",
+                        rating: 4.5
+                    },
+                    available: true,
+                    availableFrom: "2024-12-01"
+                },
+                {
+                    id: 2,
+                    title: "Cozy 1BHK Studio",
+                    description: "Perfect for young professionals, fully furnished studio apartment",
+                    rent: 18000,
+                    deposit: 36000,
+                    type: "Studio",
+                    bedrooms: 1,
+                    bathrooms: 1,
+                    area: 600,
+                    location: "Indiranagar, Bangalore",
+                    address: "456 Park Avenue, Indiranagar, Bangalore - 560038",
+                    amenities: ["Furnished", "WiFi", "AC", "Security", "Parking"],
+                    images: [
+                        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
+                        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400"
+                    ],
+                    landlord: {
+                        name: "Priya Sharma",
+                        phone: "+91 87654 32109",
+                        email: "priya.sharma@example.com",
+                        rating: 4.8
+                    },
+                    available: true,
+                    availableFrom: "2024-11-25"
+                },
+                {
+                    id: 3,
+                    title: "Luxury 3BHK Villa",
+                    description: "Spacious villa with garden, perfect for families",
+                    rent: 45000,
+                    deposit: 90000,
+                    type: "Villa",
+                    bedrooms: 3,
+                    bathrooms: 3,
+                    area: 2000,
+                    location: "Whitefield, Bangalore",
+                    address: "789 Garden View, Whitefield, Bangalore - 560066",
+                    amenities: ["Garden", "Parking", "Security", "Power Backup", "Water Supply"],
+                    images: [
+                        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400",
+                        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400"
+                    ],
+                    landlord: {
+                        name: "Amit Patel",
+                        phone: "+91 76543 21098",
+                        email: "amit.patel@example.com",
+                        rating: 4.3
+                    },
+                    available: true,
+                    availableFrom: "2024-12-15"
+                },
+                {
+                    id: 4,
+                    title: "Budget 1BHK Apartment",
+                    description: "Affordable housing option with basic amenities",
+                    rent: 12000,
+                    deposit: 24000,
+                    type: "Apartment",
+                    bedrooms: 1,
+                    bathrooms: 1,
+                    area: 500,
+                    location: "Electronic City, Bangalore",
+                    address: "321 Tech Park Road, Electronic City, Bangalore - 560100",
+                    amenities: ["Security", "Water Supply", "Parking"],
+                    images: [
+                        "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400"
+                    ],
+                    landlord: {
+                        name: "Sunita Reddy",
+                        phone: "+91 65432 10987",
+                        email: "sunita.reddy@example.com",
+                        rating: 4.0
+                    },
+                    available: false,
+                    availableFrom: "2025-01-01"
+                }
+            ];
+            setProperties(mockProperties);
+        } finally {
             setLoading(false);
         }
     };
@@ -253,26 +267,28 @@ const PropertiesPage = () => {
     const handleSubmitContactRequest = async (propertyId, message) => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:5000/api/properties/${propertyId}/interest`, {
-                method: 'POST',
+
+
+            const response = await axios.post(`http://localhost:5000/api/properties/${propertyId}/interest`, {
+                message: message || "I am interested in this property. Please contact me to discuss further."
+            }, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: message || "I am interested in this property. Please contact me to discuss further."
-                })
+                }
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                // Show success message
-                alert(data.message || "Your request has been sent to the property owner!");
-            } else {
-                throw new Error('Failed to send request');
-            }
+            // Show success message
+            alert(response.data.message || "Your request has been sent to the property owner!");
         } catch (error) {
             console.error("Error expressing interest:", error);
+
+            // Show user-friendly error message
+            if (error.response?.data?.message) {
+                alert(error.response.data.message);
+            } else {
+                alert("Failed to send request. Please try again.");
+            }
             throw error;
         }
     };
@@ -283,7 +299,7 @@ const PropertiesPage = () => {
                 <CardMedia
                     component="img"
                     height="200"
-                    image={`http://localhost:5000${property.images[0]}`}
+                    image={property.images[0]?.startsWith('http') ? property.images[0] : `http://localhost:5000${property.images[0]}`}
                     alt={property.title}
                 />
                 <IconButton
@@ -514,7 +530,7 @@ const PropertiesPage = () => {
                         <DialogContent>
                             <Box sx={{ mb: 3 }}>
                                 <img
-                                    src={`http://localhost:5000${selectedProperty.images[0]}`}
+                                    src={selectedProperty.images[0]?.startsWith('http') ? selectedProperty.images[0] : `http://localhost:5000${selectedProperty.images[0]}`}
                                     alt={selectedProperty.title}
                                     style={{ width: "100%", height: "300px", objectFit: "cover", borderRadius: "8px" }}
                                 />

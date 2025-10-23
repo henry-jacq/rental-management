@@ -39,14 +39,21 @@ const upload = multer({
 // Get all properties for the logged-in landlord
 router.get("/", requireRole(["landlord"]), async (req, res) => {
     try {
+        console.log("Fetching properties for landlord:", req.userData._id);
+        
         const properties = await Property.find({ landlord: req.userData._id })
             .populate('currentTenant', 'name email phone')
             .sort({ createdAt: -1 });
 
+        console.log("Found properties:", properties.length);
         res.json(properties);
     } catch (error) {
         console.error("Error fetching properties:", error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: "Failed to fetch properties",
+            message: error.message,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 
@@ -72,6 +79,9 @@ router.get("/:id", requireRole(["landlord"]), async (req, res) => {
 // Create a new property
 router.post("/", requireRole(["landlord"]), async (req, res) => {
     try {
+        console.log("Creating property for landlord:", req.userData._id);
+        console.log("Request body:", req.body);
+
         const {
             title,
             description,
@@ -92,21 +102,29 @@ router.post("/", requireRole(["landlord"]), async (req, res) => {
             rentalType
         } = req.body;
 
+        // Validate required fields
+        if (!title || !description || !rent || !type || !location) {
+            return res.status(400).json({ 
+                error: "Validation error",
+                message: "Title, description, rent, type, and location are required fields"
+            });
+        }
+
         const property = new Property({
-            title,
-            description,
+            title: title.trim(),
+            description: description.trim(),
             rent: parseFloat(rent),
-            deposit: parseFloat(deposit),
+            deposit: parseFloat(deposit) || 0,
             type,
-            bedrooms: parseInt(bedrooms),
-            bathrooms: parseInt(bathrooms),
-            area: parseInt(area),
-            location,
-            address,
-            amenities: amenities || [],
+            bedrooms: parseInt(bedrooms) || 1,
+            bathrooms: parseInt(bathrooms) || 1,
+            area: parseInt(area) || 0,
+            location: location.trim(),
+            address: address?.trim() || location.trim(),
+            amenities: Array.isArray(amenities) ? amenities : [],
             furnished: furnished || "Unfurnished",
-            parking: parking || false,
-            petFriendly: petFriendly || false,
+            parking: Boolean(parking),
+            petFriendly: Boolean(petFriendly),
             preferredTenantType: preferredTenantType || "Any",
             minimumLeasePeriod: parseInt(minimumLeasePeriod) || 12,
             rentalType: rentalType || "Rental",
@@ -118,10 +136,15 @@ router.post("/", requireRole(["landlord"]), async (req, res) => {
         const savedProperty = await property.save();
         await savedProperty.populate('currentTenant', 'name email phone');
 
+        console.log("Property created successfully:", savedProperty._id);
         res.status(201).json(savedProperty);
     } catch (error) {
         console.error("Error creating property:", error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: "Failed to create property",
+            message: error.message,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 

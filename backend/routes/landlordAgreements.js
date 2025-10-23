@@ -10,7 +10,7 @@ import {
   fileExists,
   getFileStats
 } from "../middleware/agreementUpload.js";
-import path from "path";
+
 import fs from "fs";
 
 const router = express.Router();
@@ -18,6 +18,8 @@ const router = express.Router();
 // Get all agreements for the logged-in landlord
 router.get("/", requireRole(["landlord"]), async (req, res) => {
   try {
+    console.log("Fetching agreements for landlord:", req.userData._id);
+    
     const { search, status, property, tenant, page = 1, limit = 20, sort = 'createdAt' } = req.query;
     
     // Build filters object
@@ -26,6 +28,8 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
     if (status) filters.status = status;
     if (property) filters.property = property;
     if (tenant) filters.tenant = tenant;
+    
+    console.log("Applied filters:", filters);
     
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -52,11 +56,18 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
     query = query.sort(sortOptions);
     
     // Get total count for pagination
-    const totalQuery = Agreement.findByLandlord(req.userData._id, filters);
-    const total = await Agreement.countDocuments(totalQuery.getQuery());
+    const baseQuery = { landlord: req.userData._id };
+    if (filters.status) baseQuery.status = filters.status;
+    if (filters.property) baseQuery.property = filters.property;
+    if (filters.tenant) baseQuery.tenant = filters.tenant;
+    if (filters.search) baseQuery.$text = { $search: filters.search };
+    
+    const total = await Agreement.countDocuments(baseQuery);
     
     // Apply pagination
     const agreements = await query.skip(skip).limit(parseInt(limit));
+    
+    console.log("Found agreements:", agreements.length);
     
     res.json({
       agreements,
@@ -71,6 +82,55 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
     console.error("Error fetching agreements:", error);
     res.status(500).json({ 
       error: "Failed to fetch agreements",
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Get agreement statistics for dashboard (must come before /:id route)
+router.get("/stats/summary", requireRole(["landlord"]), async (req, res) => {
+  try {
+    const landlordId = req.userData._id;
+    
+    const stats = await Agreement.aggregate([
+      { $match: { landlord: landlordId } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ["$status", "Active"] }, 1, 0] } },
+          draft: { $sum: { $cond: [{ $eq: ["$status", "Draft"] }, 1, 0] } },
+          expired: { $sum: { $cond: [{ $eq: ["$status", "Expired"] }, 1, 0] } },
+          terminated: { $sum: { $cond: [{ $eq: ["$status", "Terminated"] }, 1, 0] } }
+        }
+      }
+    ]);
+
+    const result = stats[0] || {
+      total: 0,
+      active: 0,
+      draft: 0,
+      expired: 0,
+      terminated: 0
+    };
+
+    // Get recent agreements
+    const recentAgreements = await Agreement.find({ landlord: landlordId })
+      .populate('property', 'title')
+      .populate('tenant', 'name')
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('title status createdAt property tenant');
+
+    res.json({
+      stats: result,
+      recentAgreements
+    });
+  } catch (error) {
+    console.error("Error fetching agreement stats:", error);
+    res.status(500).json({ 
+      error: "Failed to fetch agreement statistics",
       message: error.message 
     });
   }
@@ -117,27 +177,51 @@ router.post("/",
         description,
         terms,
         property,
-        tenant,
         status = 'Draft',
         expiresAt
       } = req.body;
 
       // Validate required fields
-      if (!title || !terms) {
+      if (!title || !title.trim()) {
         return res.status(400).json({
           error: "Validation error",
-          message: "Title and terms are required fields"
+          message: "Title is required"
         });
       }
 
-      // Create new agreement
+      if (!terms || !terms.trim()) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Terms and conditions are required"
+        });
+      }
+
+      // Validate property exists if provided
+      if (property) {
+        const Property = (await import("../models/Property.js")).default;
+        const propertyExists = await Property.findOne({ 
+          _id: property, 
+          landlord: req.userData._id 
+        });
+        if (!propertyExists) {
+          return res.status(400).json({
+            error: "Validation error",
+            message: "Selected property not found or you don't have permission to use it"
+          });
+        }
+      }
+
+
+
+      // Create new agreement (tenant will be null initially)
+      // Tenants can be assigned later through the edit functionality
       const agreement = new Agreement({
         title: title.trim(),
         description: description?.trim(),
         terms: terms.trim(),
         landlord: req.userData._id,
         property: property || null,
-        tenant: tenant || null,
+        tenant: null, // Tenant assignment happens during editing, not creation
         status,
         documents: req.uploadedDocuments || [],
         expiresAt: expiresAt ? new Date(expiresAt) : null
@@ -203,6 +287,21 @@ router.put("/:id",
         removeDocuments = []
       } = req.body;
 
+      // Validate tenant exists if being assigned
+      if (tenant !== undefined && tenant !== null && tenant !== "") {
+        const User = (await import("../models/User.js")).default;
+        const tenantExists = await User.findOne({ 
+          _id: tenant, 
+          role: 'tenant' 
+        });
+        if (!tenantExists) {
+          return res.status(400).json({
+            error: "Validation error",
+            message: "Selected tenant not found"
+          });
+        }
+      }
+
       // Update fields if provided
       if (title !== undefined) agreement.title = title.trim();
       if (description !== undefined) agreement.description = description?.trim();
@@ -213,12 +312,28 @@ router.put("/:id",
       if (expiresAt !== undefined) agreement.expiresAt = expiresAt ? new Date(expiresAt) : null;
 
       // Handle document removal
-      if (removeDocuments.length > 0) {
-        removeDocuments.forEach(docId => {
+      let documentsToRemoveArray = [];
+      if (removeDocuments) {
+        try {
+          documentsToRemoveArray = typeof removeDocuments === 'string' 
+            ? JSON.parse(removeDocuments) 
+            : removeDocuments;
+        } catch (error) {
+          console.error("Error parsing removeDocuments:", error);
+          documentsToRemoveArray = [];
+        }
+      }
+
+      if (documentsToRemoveArray.length > 0) {
+        documentsToRemoveArray.forEach(docId => {
           const document = agreement.documents.id(docId);
           if (document) {
             // Delete physical file
-            deleteFile(document.path);
+            try {
+              deleteFile(document.path);
+            } catch (error) {
+              console.error("Error deleting file:", error);
+            }
             // Remove from array
             document.remove();
           }
@@ -356,52 +471,6 @@ router.get("/:id/download/:documentId", requireRole(["landlord"]), async (req, r
   }
 });
 
-// Get agreement statistics for dashboard
-router.get("/stats/summary", requireRole(["landlord"]), async (req, res) => {
-  try {
-    const landlordId = req.userData._id;
-    
-    const stats = await Agreement.aggregate([
-      { $match: { landlord: landlordId } },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          active: { $sum: { $cond: [{ $eq: ["$status", "Active"] }, 1, 0] } },
-          draft: { $sum: { $cond: [{ $eq: ["$status", "Draft"] }, 1, 0] } },
-          expired: { $sum: { $cond: [{ $eq: ["$status", "Expired"] }, 1, 0] } },
-          terminated: { $sum: { $cond: [{ $eq: ["$status", "Terminated"] }, 1, 0] } }
-        }
-      }
-    ]);
 
-    const result = stats[0] || {
-      total: 0,
-      active: 0,
-      draft: 0,
-      expired: 0,
-      terminated: 0
-    };
-
-    // Get recent agreements
-    const recentAgreements = await Agreement.find({ landlord: landlordId })
-      .populate('property', 'title')
-      .populate('tenant', 'name')
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('title status createdAt property tenant');
-
-    res.json({
-      stats: result,
-      recentAgreements
-    });
-  } catch (error) {
-    console.error("Error fetching agreement stats:", error);
-    res.status(500).json({ 
-      error: "Failed to fetch agreement statistics",
-      message: error.message 
-    });
-  }
-});
 
 export default router;

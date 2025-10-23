@@ -75,6 +75,10 @@ AgreementSchema.virtual('documentCount').get(function() {
   return this.documents ? this.documents.length : 0;
 });
 
+// Ensure virtuals are included in JSON output
+AgreementSchema.set('toJSON', { virtuals: true });
+AgreementSchema.set('toObject', { virtuals: true });
+
 // Virtual for status display
 AgreementSchema.virtual('statusDisplay').get(function() {
   const statusMap = {

@@ -78,7 +78,7 @@ const PropertiesPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/landlord/properties", {
+      const response = await axios.get("http://localhost:5000/api/landlord-properties", {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProperties(response.data);
@@ -184,7 +184,7 @@ const PropertiesPage = () => {
       });
 
       await axios.post(
-        `http://localhost:5000/api/landlord/properties/${propertyId}/images`,
+        `http://localhost:5000/api/landlord-properties/${propertyId}/images`,
         formDataUpload,
         {
           headers: {
@@ -207,7 +207,7 @@ const PropertiesPage = () => {
       if (editingProperty) {
         // Update existing property
         const response = await axios.put(
-          `http://localhost:5000/api/landlord/properties/${editingProperty._id}`,
+          `http://localhost:5000/api/landlord-properties/${editingProperty._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -219,7 +219,7 @@ const PropertiesPage = () => {
       } else {
         // Create new property
         const response = await axios.post(
-          "http://localhost:5000/api/landlord/properties",
+          "http://localhost:5000/api/landlord-properties",
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -249,7 +249,7 @@ const PropertiesPage = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/landlord/properties/${id}`, {
+      await axios.delete(`http://localhost:5000/api/landlord-properties/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

@@ -36,6 +36,15 @@ app.use("/api/property-requests", verifyToken(), attachUserData, propertyRequest
 app.use("/api/landlord-properties", verifyToken(), attachUserData, landlordPropertiesRoutes);
 app.use("/api/landlord-agreements", verifyToken(), attachUserData, landlordAgreementsRoutes);
 
+// Global error handler
+app.use((error, req, res, next) => {
+  console.error("Global error handler:", error);
+  res.status(500).json({
+    error: "Internal server error",
+    message: process.env.NODE_ENV === 'development' ? error.message : "Something went wrong"
+  });
+});
+
 // test route
 app.get("/", (req, res) => {
   res.send("Backend running!");
@@ -44,7 +53,10 @@ app.get("/", (req, res) => {
 // connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
-  .catch(err => console.error(err));
+  .catch(err => {
+    console.error("❌ MongoDB Connection Error:", err);
+    process.exit(1);
+  });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

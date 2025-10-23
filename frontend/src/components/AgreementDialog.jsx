@@ -15,14 +15,12 @@ import {
   Box,
   IconButton,
   Divider,
-  Chip,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
   ListItemSecondaryAction,
   CircularProgress,
-  Alert,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -30,7 +28,6 @@ import {
   Download as DownloadIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
-  Add as AddIcon,
 } from "@mui/icons-material";
 import FileUpload from "./FileUpload";
 
@@ -68,7 +65,7 @@ const AgreementDialog = ({
           description: "",
           terms: "",
           property: "",
-          tenant: "",
+          tenant: "", // Keep in state but won't be shown in create mode
           status: "Draft",
           expiresAt: "",
         });
@@ -98,7 +95,7 @@ const AgreementDialog = ({
       ...prev,
       [field]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
@@ -117,11 +114,11 @@ const AgreementDialog = ({
     setExistingDocuments(prev => prev.filter(doc => doc._id !== documentId));
   };
 
-  const handleDownloadDocument = async (document) => {
+  const handleDownloadDocument = async (doc) => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:5000/api/landlord/agreements/${agreement._id}/download/${document._id}`,
+        `http://localhost:5000/api/landlord-agreements/${agreement._id}/download/${doc._id}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -132,7 +129,7 @@ const AgreementDialog = ({
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = document.originalName;
+        a.download = doc.originalName;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -172,28 +169,39 @@ const AgreementDialog = ({
     setSubmitting(true);
     try {
       const formDataToSend = new FormData();
-      
-      // Add form fields
+
+      console.log("Preparing form data for submission...");
+
+      // Add form fields (exclude tenant for create mode)
       Object.keys(formData).forEach(key => {
         if (formData[key] !== "") {
+          // Skip tenant field when creating new agreement
+          if (mode === 'create' && key === 'tenant') {
+            return;
+          }
           formDataToSend.append(key, formData[key]);
+          console.log(`Added field ${key}:`, formData[key]);
         }
       });
 
       // Add documents to remove (for edit mode)
       if (mode === 'edit' && documentsToRemove.length > 0) {
         formDataToSend.append('removeDocuments', JSON.stringify(documentsToRemove));
+        console.log("Documents to remove:", documentsToRemove);
       }
 
       // Add new files
-      selectedFiles.forEach(file => {
+      selectedFiles.forEach((file, index) => {
         formDataToSend.append('documents', file);
+        console.log(`Added file ${index}:`, file.name);
       });
 
+      console.log("Submitting form data...");
       await onSave(formDataToSend, mode);
       handleClose();
     } catch (error) {
       console.error('Error saving agreement:', error);
+      // Error is handled by parent component
     } finally {
       setSubmitting(false);
     }
@@ -269,7 +277,7 @@ const AgreementDialog = ({
             />
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={mode === 'create' ? 12 : 6}>
             <FormControl fullWidth disabled={isReadOnly}>
               <InputLabel>Property</InputLabel>
               <Select
@@ -278,7 +286,7 @@ const AgreementDialog = ({
                 onChange={(e) => handleInputChange('property', e.target.value)}
               >
                 <MenuItem value="">
-                  <em>Select Property</em>
+                  <em>Select Property (Optional)</em>
                 </MenuItem>
                 {properties.map((property) => (
                   <MenuItem key={property._id} value={property._id}>
@@ -287,27 +295,35 @@ const AgreementDialog = ({
                 ))}
               </Select>
             </FormControl>
+            {mode === 'create' && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                You can assign a tenant to this agreement later by editing it.
+              </Typography>
+            )}
           </Grid>
 
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth disabled={isReadOnly}>
-              <InputLabel>Tenant</InputLabel>
-              <Select
-                value={formData.tenant}
-                label="Tenant"
-                onChange={(e) => handleInputChange('tenant', e.target.value)}
-              >
-                <MenuItem value="">
-                  <em>Select Tenant</em>
-                </MenuItem>
-                {tenants.map((tenant) => (
-                  <MenuItem key={tenant._id} value={tenant._id}>
-                    {tenant.name}
+          {/* Tenant field - only show in edit/preview mode */}
+          {mode !== 'create' && (
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth disabled={isReadOnly}>
+                <InputLabel>Tenant</InputLabel>
+                <Select
+                  value={formData.tenant}
+                  label="Tenant"
+                  onChange={(e) => handleInputChange('tenant', e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>Select Tenant</em>
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+                  {tenants.map((tenant) => (
+                    <MenuItem key={tenant._id} value={tenant._id}>
+                      {tenant.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
 
           <Grid item xs={12}>
             <TextField
