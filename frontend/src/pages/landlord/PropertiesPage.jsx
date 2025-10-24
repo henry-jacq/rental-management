@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -21,8 +21,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  FormControlLabel,
-  Checkbox,
   InputAdornment,
   Divider,
 } from "@mui/material";
@@ -37,13 +35,17 @@ import {
   Bed as BedIcon,
   Bathtub as BathtubIcon,
   SquareFoot as SquareFootIcon,
+  Visibility as VisibilityIcon,
+  Lock as LockIcon,
 } from "@mui/icons-material";
 import axios from "axios";
 
 const PropertiesPage = () => {
   const [properties, setProperties] = useState([]);
   const [open, setOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
+  const [viewingProperty, setViewingProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -57,13 +59,7 @@ const PropertiesPage = () => {
     bathrooms: 1,
     area: "",
     location: "",
-    address: "",
     amenities: [],
-    furnished: "Unfurnished",
-    parking: false,
-    petFriendly: false,
-    preferredTenantType: "Any",
-    minimumLeasePeriod: 12,
     rentalType: "Rental",
   });
   const [selectedImages, setSelectedImages] = useState([]);
@@ -92,6 +88,12 @@ const PropertiesPage = () => {
   };
 
   const handleOpen = (property = null) => {
+    // Check if trying to edit a non-available property
+    if (property && property.status !== "Available") {
+      setError("Only available properties can be edited. Properties that are rented or have other statuses cannot be modified.");
+      return;
+    }
+
     setEditingProperty(property);
     if (property) {
       setFormData({
@@ -104,13 +106,7 @@ const PropertiesPage = () => {
         bathrooms: property.bathrooms || 1,
         area: property.area || "",
         location: property.location || "",
-        address: property.address || "",
         amenities: property.amenities || [],
-        furnished: property.furnished || "Unfurnished",
-        parking: property.parking || false,
-        petFriendly: property.petFriendly || false,
-        preferredTenantType: property.preferredTenantType || "Any",
-        minimumLeasePeriod: property.minimumLeasePeriod || 12,
         rentalType: property.rentalType || "Rental",
       });
       setImagePreview(property.images || []);
@@ -125,13 +121,7 @@ const PropertiesPage = () => {
         bathrooms: 1,
         area: "",
         location: "",
-        address: "",
         amenities: [],
-        furnished: "Unfurnished",
-        parking: false,
-        petFriendly: false,
-        preferredTenantType: "Any",
-        minimumLeasePeriod: 12,
         rentalType: "Rental",
       });
       setImagePreview([]);
@@ -148,10 +138,20 @@ const PropertiesPage = () => {
     setError("");
   };
 
+  const handleViewOpen = (property) => {
+    setViewingProperty(property);
+    setViewOpen(true);
+  };
+
+  const handleViewClose = () => {
+    setViewOpen(false);
+    setViewingProperty(null);
+  };
+
   const handleImageSelect = (event) => {
     const files = Array.from(event.target.files);
     setSelectedImages(files);
-    
+
     // Create preview URLs
     const previews = files.map(file => URL.createObjectURL(file));
     setImagePreview([...imagePreview, ...previews]);
@@ -160,7 +160,7 @@ const PropertiesPage = () => {
   const handleRemoveImage = (index) => {
     const newPreviews = imagePreview.filter((_, i) => i !== index);
     setImagePreview(newPreviews);
-    
+
     if (editingProperty && index < (editingProperty.images?.length || 0)) {
       // This is an existing image - we'll handle removal on server
       // For now, just remove from preview
@@ -178,7 +178,7 @@ const PropertiesPage = () => {
     try {
       const token = localStorage.getItem("token");
       const formDataUpload = new FormData();
-      
+
       selectedImages.forEach(image => {
         formDataUpload.append('images', image);
       });
@@ -203,15 +203,15 @@ const PropertiesPage = () => {
     try {
       setSubmitting(true);
       const token = localStorage.getItem("token");
-      
+
       if (editingProperty) {
         // Update existing property
-        const response = await axios.put(
+        await axios.put(
           `http://localhost:5000/api/landlord-properties/${editingProperty._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        
+
         // Upload new images if any
         if (selectedImages.length > 0) {
           await uploadImages(editingProperty._id);
@@ -223,13 +223,13 @@ const PropertiesPage = () => {
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        
+
         // Upload images if any
         if (selectedImages.length > 0) {
           await uploadImages(response.data._id);
         }
       }
-      
+
       // Refresh properties list
       await fetchProperties();
       handleClose();
@@ -243,6 +243,14 @@ const PropertiesPage = () => {
   };
 
   const handleDelete = async (id) => {
+    // Find the property to check its status
+    const property = properties.find(p => p._id === id);
+
+    if (property && property.status !== "Available") {
+      setError("Only available properties can be deleted. Please ensure the property is not currently rented.");
+      return;
+    }
+
     if (!window.confirm("Are you sure you want to delete this property?")) {
       return;
     }
@@ -252,7 +260,7 @@ const PropertiesPage = () => {
       await axios.delete(`http://localhost:5000/api/landlord-properties/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       // Refresh properties list
       await fetchProperties();
       setError("");
@@ -291,8 +299,12 @@ const PropertiesPage = () => {
           <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
             Properties Management
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
             Manage your rental properties and track their status.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LockIcon fontSize="small" />
+            Only available properties can be edited or deleted
           </Typography>
         </Box>
         <Button
@@ -316,7 +328,17 @@ const PropertiesPage = () => {
         <Grid container spacing={3}>
           {properties.map((property) => (
             <Grid item xs={12} sm={6} lg={4} key={property._id}>
-              <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+              <Card
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  border: property.status !== "Available" ? '1px solid' : 'none',
+                  borderColor: property.status !== "Available" ? 'grey.300' : 'transparent',
+                  opacity: property.status !== "Available" ? 0.85 : 1,
+                  position: 'relative'
+                }}
+              >
                 {property.images && property.images.length > 0 && (
                   <CardMedia
                     component="img"
@@ -336,7 +358,7 @@ const PropertiesPage = () => {
                       {property.location}
                     </Typography>
                   </Box>
-                  
+
                   <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <Box sx={{ display: "flex", alignItems: "center" }}>
                       <BedIcon fontSize="small" color="action" />
@@ -373,10 +395,12 @@ const PropertiesPage = () => {
                     <Chip
                       label={property.status}
                       color={
-                        property.status === "Available" ? "success" : 
-                        property.status === "Rented" ? "primary" : "warning"
+                        property.status === "Available" ? "success" :
+                          property.status === "Rented" ? "primary" : "warning"
                       }
                       size="small"
+                      variant={property.status === "Available" ? "filled" : "outlined"}
+                      icon={property.status !== "Available" ? <LockIcon fontSize="small" /> : undefined}
                     />
                   </Box>
 
@@ -386,22 +410,49 @@ const PropertiesPage = () => {
                     </Typography>
                   )}
                 </CardContent>
-                <CardActions>
-                  <Button
-                    size="small"
-                    startIcon={<EditIcon />}
-                    onClick={() => handleOpen(property)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="small"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => handleDelete(property._id)}
-                  >
-                    Delete
-                  </Button>
+                <CardActions sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                  {property.status === "Available" ? (
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button
+                        size="small"
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => handleViewOpen(property)}
+                      >
+                        View
+                      </Button>
+                      <Button
+                        size="small"
+                        startIcon={<EditIcon />}
+                        onClick={() => handleOpen(property)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="small"
+                        color="error"
+                        startIcon={<DeleteIcon />}
+                        onClick={() => handleDelete(property._id)}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  ) : (
+                    <>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LockIcon fontSize="small" color="action" />
+                        <Typography variant="body2" color="text.secondary">
+                          {property.status === "Rented" ? "Currently rented" : "Not available"}
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => handleViewOpen(property)}
+                      >
+                        View
+                      </Button>
+                    </>
+                  )}
                 </CardActions>
               </Card>
             </Grid>
@@ -705,6 +756,280 @@ const PropertiesPage = () => {
           >
             {submitting ? <CircularProgress size={20} /> : editingProperty ? "Update" : "Add"}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Property Dialog (Read-only) */}
+      <Dialog open={viewOpen} onClose={handleViewClose} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600, pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <VisibilityIcon color="primary" />
+          Property Details - {viewingProperty?.title}
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: 1 }}>
+          {viewingProperty && (
+            <Box sx={{ p: 1 }}>
+              {/* Property Images */}
+              {viewingProperty.images && viewingProperty.images.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+                    Property Images
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {viewingProperty.images.map((image, index) => (
+                      <Grid item xs={6} sm={4} md={3} key={index}>
+                        <img
+                          src={`http://localhost:5000${image}`}
+                          alt={`Property ${index + 1}`}
+                          style={{
+                            width: "100%",
+                            height: "120px",
+                            objectFit: "cover",
+                            borderRadius: "8px",
+                          }}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              )}
+
+              <Grid container spacing={3}>
+                {/* Basic Information */}
+                <Grid item xs={12}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                    Basic Information
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Property Name</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{viewingProperty.title}</Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Property Type</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{viewingProperty.type}</Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Rental Type</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{viewingProperty.rentalType || 'Rental'}</Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Status</Typography>
+                  <Chip
+                    label={viewingProperty.status}
+                    color={
+                      viewingProperty.status === "Available" ? "success" :
+                        viewingProperty.status === "Rented" ? "primary" : "warning"
+                    }
+                    size="small"
+                    sx={{ mt: 0.5 }}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Typography variant="body2" color="text.secondary">Description</Typography>
+                  <Typography variant="body1" sx={{ mt: 0.5 }}>
+                    {viewingProperty.description || 'No description provided'}
+                  </Typography>
+                </Grid>
+
+                {/* Location Details */}
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                    Location Details
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Location / Area</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{viewingProperty.location}</Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Full Address</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {viewingProperty.address || 'Not specified'}
+                  </Typography>
+                </Grid>
+
+                {/* Property Details */}
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                    Property Details
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="body2" color="text.secondary">Bedrooms</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                    <BedIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{viewingProperty.bedrooms}</Typography>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="body2" color="text.secondary">Bathrooms</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                    <BathtubIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{viewingProperty.bathrooms}</Typography>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="body2" color="text.secondary">Area</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                    <SquareFootIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{viewingProperty.area} sqft</Typography>
+                  </Box>
+                </Grid>
+
+                {/* Pricing */}
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                    Pricing
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Monthly Rent</Typography>
+                  <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mt: 0.5 }}>
+                    ₹{viewingProperty.rent?.toLocaleString()}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Security Deposit</Typography>
+                  <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mt: 0.5 }}>
+                    ₹{viewingProperty.deposit?.toLocaleString()}
+                  </Typography>
+                </Grid>
+
+                {/* Amenities */}
+                {viewingProperty.amenities && viewingProperty.amenities.length > 0 && (
+                  <>
+                    <Grid item xs={12}>
+                      <Divider sx={{ my: 2 }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                        Amenities
+                      </Typography>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                        {viewingProperty.amenities.map((amenity, index) => (
+                          <Chip
+                            key={index}
+                            label={amenity}
+                            variant="outlined"
+                            size="small"
+                            color="primary"
+                          />
+                        ))}
+                      </Box>
+                    </Grid>
+                  </>
+                )}
+
+                {/* Additional Details */}
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                    Additional Details
+                  </Typography>
+                </Grid>
+
+                {viewingProperty.createdAt && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Created Date</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {new Date(viewingProperty.createdAt).toLocaleDateString()}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {viewingProperty.updatedAt && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Last Updated</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {new Date(viewingProperty.updatedAt).toLocaleDateString()}
+                    </Typography>
+                  </Grid>
+                )}
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Furnished Status</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {viewingProperty.furnished || 'Unfurnished'}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Preferred Tenant Type</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {viewingProperty.preferredTenantType || 'Any'}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Minimum Lease Period</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {viewingProperty.minimumLeasePeriod || 12} months
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Pet Friendly</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {viewingProperty.petFriendly ? 'Yes' : 'No'}
+                  </Typography>
+                </Grid>
+
+                {/* Current Tenant Info (if rented) */}
+                {viewingProperty.currentTenant && (
+                  <>
+                    <Grid item xs={12}>
+                      <Divider sx={{ my: 2 }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                        Current Tenant
+                      </Typography>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Typography variant="body2" color="text.secondary">Tenant Name</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {viewingProperty.currentTenant.name}
+                      </Typography>
+                    </Grid>
+                  </>
+                )}
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={handleViewClose} variant="outlined">
+            Close
+          </Button>
+          {viewingProperty?.status === "Available" && (
+            <Button
+              onClick={() => {
+                handleViewClose();
+                handleOpen(viewingProperty);
+              }}
+              variant="contained"
+              startIcon={<EditIcon />}
+            >
+              Edit Property
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

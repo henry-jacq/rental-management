@@ -22,7 +22,10 @@ import {
     Avatar,
     Divider,
     IconButton,
+    Tabs,
+    Tab,
 } from "@mui/material";
+
 import {
     Search as SearchIcon,
     LocationOn as LocationIcon,
@@ -36,12 +39,20 @@ import {
     Email as EmailIcon,
     Close as CloseIcon,
 } from "@mui/icons-material";
+
 import PropertyContactDialog from "../../components/PropertyContactDialog";
 
 const PropertiesPage = () => {
-    const [properties, setProperties] = useState([]);
+    const [tabValue, setTabValue] = useState(0);
+
+    // My Properties (Acquired) - Tab 0
+    const [myProperties, setMyProperties] = useState([]);
+    const [myPropertiesLoading, setMyPropertiesLoading] = useState(true);
+
+    // Available Properties - Tab 1
+    const [availableProperties, setAvailableProperties] = useState([]);
     const [filteredProperties, setFilteredProperties] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [availableLoading, setAvailableLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [priceRange, setPriceRange] = useState("");
     const [propertyType, setPropertyType] = useState("");
@@ -52,20 +63,63 @@ const PropertiesPage = () => {
     const [contactProperty, setContactProperty] = useState(null);
 
     useEffect(() => {
-        fetchProperties();
+        fetchMyProperties();
+        fetchAvailableProperties();
     }, []);
 
     useEffect(() => {
         filterProperties();
-    }, [properties, searchTerm, priceRange, propertyType, rentalType]);
+    }, [availableProperties, searchTerm, priceRange, propertyType, rentalType]);
 
-    const fetchProperties = async () => {
+    const fetchMyProperties = async () => {
         try {
-            setLoading(true);
+            setMyPropertiesLoading(true);
             const token = localStorage.getItem("token");
 
-            console.log("Fetching properties for tenant...");
-            console.log("Token exists:", !!token);
+            console.log("Fetching acquired properties for tenant...");
+
+            // Fetch tenant's acquired properties from completed requests
+            const response = await axios.get("http://localhost:5000/api/property-requests/tenant?status=Completed", {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log("Acquired properties API response:", response.data);
+
+            // Transform completed requests to property format
+            const acquiredProperties = (response.data.requests || []).map(request => ({
+                ...request.property,
+                id: request.property._id,
+                // Ensure rentalType is set, default to property's rentalType or 'Rental' if not specified
+                rentalType: request.property.rentalType || 'Rental',
+                lease: {
+                    startDate: request.leaseStartDate,
+                    endDate: request.leaseEndDate,
+                    rentAmount: request.rentAmount,
+                    securityDeposit: request.securityDeposit,
+                    status: 'Active'
+                },
+                requestId: request._id,
+                assignedAt: request.assignedAt
+            }));
+
+            setMyProperties(acquiredProperties);
+        } catch (error) {
+            console.error("Error fetching acquired properties:", error);
+            setMyProperties([]);
+        } finally {
+            setMyPropertiesLoading(false);
+        }
+    };
+
+    const fetchAvailableProperties = async () => {
+        try {
+            setAvailableLoading(true);
+            const token = localStorage.getItem("token");
+
+            console.log("Fetching available properties for tenant...");
 
             const response = await axios.get("http://localhost:5000/api/properties/available", {
                 headers: {
@@ -74,8 +128,8 @@ const PropertiesPage = () => {
                 }
             });
 
-            console.log("Properties API response:", response.data);
-            setProperties(response.data.properties || []);
+            console.log("Available properties API response:", response.data);
+            setAvailableProperties(response.data.properties || []);
         } catch (error) {
             console.error("Error fetching properties:", error);
 
@@ -196,14 +250,14 @@ const PropertiesPage = () => {
                     availableFrom: "2025-01-01"
                 }
             ];
-            setProperties(mockProperties);
+            setAvailableProperties(mockProperties);
         } finally {
-            setLoading(false);
+            setAvailableLoading(false);
         }
     };
 
     const filterProperties = () => {
-        let filtered = properties;
+        let filtered = availableProperties;
 
         // Search filter
         if (searchTerm) {
@@ -292,6 +346,94 @@ const PropertiesPage = () => {
             throw error;
         }
     };
+
+    const MyPropertyCard = ({ property }) => (
+        <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+            <Box sx={{ position: "relative" }}>
+                <CardMedia
+                    component="img"
+                    height="200"
+                    image={property.images?.[0]?.startsWith('http') ? property.images[0] : `http://localhost:5000${property.images?.[0]}`}
+                    alt={property.title}
+                />
+                <Chip
+                    label={property.lease?.status || "Active"}
+                    color="success"
+                    size="small"
+                    sx={{
+                        position: "absolute",
+                        top: 8,
+                        left: 8,
+                        bgcolor: "success.main",
+                        color: "white"
+                    }}
+                />
+            </Box>
+            <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    {property.title}
+                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                    <LocationIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+                        {property.location}
+                    </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
+                    {property.description}
+                </Typography>
+
+                <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <BedIcon fontSize="small" color="action" />
+                        <Typography variant="body2" sx={{ ml: 0.5 }}>
+                            {property.bedrooms} Bed
+                        </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <BathtubIcon fontSize="small" color="action" />
+                        <Typography variant="body2" sx={{ ml: 0.5 }}>
+                            {property.bathrooms} Bath
+                        </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <SquareFootIcon fontSize="small" color="action" />
+                        <Typography variant="body2" sx={{ ml: 0.5 }}>
+                            {property.area} sqft
+                        </Typography>
+                    </Box>
+                </Box>
+
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                    <Box>
+                        <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
+                            ₹{property.lease?.rentAmount?.toLocaleString() || property.rent?.toLocaleString()}/month
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Deposit Paid: ₹{property.lease?.securityDeposit?.toLocaleString() || property.deposit?.toLocaleString()}
+                        </Typography>
+                    </Box>
+                </Box>
+
+                {(property.lease || property.rentalType === 'Rental' || property.type === 'Rental') && (
+                    <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                            <strong>
+                                {(property.rentalType === 'Rental' || property.type === 'Rental' || !property.lease?.endDate) ? 'Type:' : 'Lease Period:'}
+                            </strong>
+                        </Typography>
+                        <Typography variant="body2">
+                            {(property.rentalType === 'Rental' || property.type === 'Rental' || !property.lease?.endDate)
+                                ? 'Rental'
+                                : `${new Date(property.lease.startDate).toLocaleDateString()} - ${new Date(property.lease.endDate).toLocaleDateString()}`
+                            }
+                        </Typography>
+                    </Box>
+                )}
+
+            </CardContent>
+        </Card>
+    );
 
     const PropertyCard = ({ property }) => (
         <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -408,109 +550,186 @@ const PropertiesPage = () => {
             {/* Header */}
             <Box sx={{ mb: 4 }}>
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-                    Available Properties
+                    Properties
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                    Find your perfect rental home from our available properties.
+                    Manage your acquired properties and browse available ones.
                 </Typography>
             </Box>
 
-            {/* Filters */}
-            <Card sx={{ mb: 4 }}>
-                <CardContent>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} md={3}>
-                            <TextField
-                                fullWidth
-                                placeholder="Search properties..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <SearchIcon />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={3}>
-                            <FormControl fullWidth>
-                                <InputLabel>Price Range</InputLabel>
-                                <Select
-                                    value={priceRange}
-                                    label="Price Range"
-                                    onChange={(e) => setPriceRange(e.target.value)}
-                                >
-                                    <MenuItem value="">All Prices</MenuItem>
-                                    <MenuItem value="0-15000">Under ₹15,000</MenuItem>
-                                    <MenuItem value="15000-25000">₹15,000 - ₹25,000</MenuItem>
-                                    <MenuItem value="25000-40000">₹25,000 - ₹40,000</MenuItem>
-                                    <MenuItem value="40000">Above ₹40,000</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={12} md={3}>
-                            <FormControl fullWidth>
-                                <InputLabel>Property Type</InputLabel>
-                                <Select
-                                    value={propertyType}
-                                    label="Property Type"
-                                    onChange={(e) => setPropertyType(e.target.value)}
-                                >
-                                    <MenuItem value="">All Types</MenuItem>
-                                    <MenuItem value="Apartment">Apartment</MenuItem>
-                                    <MenuItem value="Studio">Studio</MenuItem>
-                                    <MenuItem value="Villa">Villa</MenuItem>
-                                    <MenuItem value="House">House</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={12} md={3}>
-                            <FormControl fullWidth>
-                                <InputLabel>Rental Type</InputLabel>
-                                <Select
-                                    value={rentalType}
-                                    label="Rental Type"
-                                    onChange={(e) => setRentalType(e.target.value)}
-                                >
-                                    <MenuItem value="">All Types</MenuItem>
-                                    <MenuItem value="Rental">Rental</MenuItem>
-                                    <MenuItem value="Lease">Lease</MenuItem>
-                                    <MenuItem value="Both">Both</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                    </Grid>
-                </CardContent>
-            </Card>
+            {/* Tabs */}
+            <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
+                <Tab label="My Properties" />
+                <Tab label="Available Properties" />
+            </Tabs>
 
-            {/* Properties Grid */}
-            {loading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                    <Typography>Loading properties...</Typography>
-                </Box>
-            ) : (
-                <Grid container spacing={3}>
-                    {filteredProperties.map((property) => (
-                        <Grid item xs={12} sm={6} lg={4} key={property.id}>
-                            <PropertyCard property={property} />
-                        </Grid>
-                    ))}
-                </Grid>
-            )}
+            {/* Tab 0: My Properties */}
+            {tabValue === 0 && (
+                <Box>
+                    {/* My Properties Summary */}
+                    <Card sx={{ mb: 4 }}>
+                        <CardContent>
+                            <Grid container spacing={3}>
+                                <Grid item xs={12} sm={4}>
+                                    <Typography variant="h4" color="primary">
+                                        {myProperties.length}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Total Properties
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <Typography variant="h4" color="success.main">
+                                        {myProperties.filter(p => p.lease?.status === 'Active').length}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Active Leases
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <Typography variant="h4" color="info.main">
+                                        ₹{myProperties.reduce((total, p) => total + (p.lease?.rentAmount || 0), 0).toLocaleString()}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Total Monthly Rent
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </CardContent>
+                    </Card>
 
-            {filteredProperties.length === 0 && !loading && (
-                <Box sx={{ textAlign: "center", py: 8 }}>
-                    <HomeIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
-                    <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-                        No properties found
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        Try adjusting your search filters to find more properties.
-                    </Typography>
+                    {/* My Properties Grid */}
+                    {myPropertiesLoading ? (
+                        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                            <Typography>Loading your properties...</Typography>
+                        </Box>
+                    ) : (
+                        <Grid container spacing={3}>
+                            {myProperties.map((property) => (
+                                <Grid item xs={12} sm={6} lg={4} key={property.id}>
+                                    <MyPropertyCard property={property} />
+                                </Grid>
+                            ))}
+                        </Grid>
+                    )}
+
+                    {myProperties.length === 0 && !myPropertiesLoading && (
+                        <Box sx={{ textAlign: "center", py: 8 }}>
+                            <HomeIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+                            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                                No properties acquired yet
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                You haven't acquired any properties yet. Browse available properties and submit requests to get started.
+                            </Typography>
+                        </Box>
+                    )}
                 </Box>
             )}
+
+            {/* Tab 1: Available Properties */}
+            {tabValue === 1 && (
+                <Box>
+                    {/* Filters */}
+                    <Card sx={{ mb: 4 }}>
+                        <CardContent>
+                            <Grid container spacing={3}>
+                                <Grid item xs={12} md={3}>
+                                    <TextField
+                                        fullWidth
+                                        placeholder="Search properties..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <SearchIcon />
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={3}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Price Range</InputLabel>
+                                        <Select
+                                            value={priceRange}
+                                            label="Price Range"
+                                            onChange={(e) => setPriceRange(e.target.value)}
+                                        >
+                                            <MenuItem value="">All Prices</MenuItem>
+                                            <MenuItem value="0-15000">Under ₹15,000</MenuItem>
+                                            <MenuItem value="15000-25000">₹15,000 - ₹25,000</MenuItem>
+                                            <MenuItem value="25000-40000">₹25,000 - ₹40,000</MenuItem>
+                                            <MenuItem value="40000">Above ₹40,000</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} md={3}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Property Type</InputLabel>
+                                        <Select
+                                            value={propertyType}
+                                            label="Property Type"
+                                            onChange={(e) => setPropertyType(e.target.value)}
+                                        >
+                                            <MenuItem value="">All Types</MenuItem>
+                                            <MenuItem value="Apartment">Apartment</MenuItem>
+                                            <MenuItem value="Studio">Studio</MenuItem>
+                                            <MenuItem value="Villa">Villa</MenuItem>
+                                            <MenuItem value="House">House</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} md={3}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Rental Type</InputLabel>
+                                        <Select
+                                            value={rentalType}
+                                            label="Rental Type"
+                                            onChange={(e) => setRentalType(e.target.value)}
+                                        >
+                                            <MenuItem value="">All Types</MenuItem>
+                                            <MenuItem value="Rental">Rental</MenuItem>
+                                            <MenuItem value="Lease">Lease</MenuItem>
+                                            <MenuItem value="Both">Both</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </Grid>
+                        </CardContent>
+                    </Card>
+
+                    {/* Available Properties Grid */}
+                    {availableLoading ? (
+                        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                            <Typography>Loading available properties...</Typography>
+                        </Box>
+                    ) : (
+                        <Grid container spacing={3}>
+                            {filteredProperties.map((property) => (
+                                <Grid item xs={12} sm={6} lg={4} key={property.id}>
+                                    <PropertyCard property={property} />
+                                </Grid>
+                            ))}
+                        </Grid>
+                    )}
+
+                    {filteredProperties.length === 0 && !availableLoading && (
+                        <Box sx={{ textAlign: "center", py: 8 }}>
+                            <HomeIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+                            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                                No properties found
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Try adjusting your search filters to find more properties.
+                            </Typography>
+                        </Box>
+                    )}
+                </Box>
+            )}
+
+
 
             {/* Property Details Dialog */}
             <Dialog

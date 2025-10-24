@@ -1,9 +1,5 @@
 import {
   Dashboard as DashboardIcon,
-  Payment as PaymentIcon,
-  Build as BuildIcon,
-  Description as DocumentIcon,
-  Notifications as NotificationsIcon,
   Home as HomeIcon,
   Assignment as AssignmentIcon,
 } from "@mui/icons-material";
@@ -13,10 +9,6 @@ const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/tenant" },
   { text: "Properties", icon: <HomeIcon />, path: "/tenant/properties" },
   { text: "My Requests", icon: <AssignmentIcon />, path: "/tenant/requests" },
-  { text: "Payments", icon: <PaymentIcon />, path: "/tenant/payments" },
-  { text: "Maintenance", icon: <BuildIcon />, path: "/tenant/maintenance" },
-  { text: "Documents", icon: <DocumentIcon />, path: "/tenant/documents" },
-  { text: "Notifications", icon: <NotificationsIcon />, path: "/tenant/notifications" },
 ];
 
 const TenantSidebar = ({ onMobileClose, isMobile }) => {

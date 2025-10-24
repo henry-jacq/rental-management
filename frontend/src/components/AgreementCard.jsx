@@ -132,22 +132,7 @@ const AgreementCard = ({
           >
             {agreement.title}
           </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Chip
-              label={agreement.status}
-              color={getStatusColor(agreement.status)}
-              size="small"
-              icon={getStatusIcon(agreement.status)}
-              sx={{ fontWeight: 500 }}
-            />
-            <IconButton
-              size="small"
-              onClick={handleMenuClick}
-              sx={{ ml: 1 }}
-            >
-              <MoreVertIcon fontSize="small" />
-            </IconButton>
-          </Box>
+
         </Box>
 
         {/* Property Information */}

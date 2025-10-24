@@ -15,6 +15,7 @@ import {
   CircularProgress,
   Alert,
 } from "@mui/material";
+
 import {
   Add as AddIcon,
   Search as SearchIcon,
@@ -22,12 +23,12 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
 } from "@mui/icons-material";
+
 import axios from "axios";
 import AgreementCard from "../../components/AgreementCard";
 import AgreementDialog from "../../components/AgreementDialog";
 
 const AgreementsPage = () => {
-  // State management
   const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,19 +36,17 @@ const AgreementsPage = () => {
   const [propertyFilter, setPropertyFilter] = useState("");
   const [selectedAgreement, setSelectedAgreement] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState('create'); // 'create', 'edit', 'preview'
+  const [dialogMode, setDialogMode] = useState('create');
   const [error, setError] = useState("");
   const [properties, setProperties] = useState([]);
   const [tenants, setTenants] = useState([]);
 
-  // Fetch data on component mount
   useEffect(() => {
     fetchAgreements();
     fetchProperties();
     fetchTenants();
   }, []);
 
-  // Filter agreements when search/filter changes
   useEffect(() => {
     filterAgreements();
   }, [agreements, searchTerm, statusFilter, propertyFilter]);
@@ -59,7 +58,7 @@ const AgreementsPage = () => {
       const response = await axios.get("http://localhost:5000/api/landlord-agreements", {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setAgreements(response.data.agreements || []);
       setError("");
     } catch (error) {
@@ -130,12 +129,14 @@ const AgreementsPage = () => {
   };
 
   const handleEdit = (agreement) => {
+    console.log("Edit clicked for agreement:", agreement.title);
     setSelectedAgreement(agreement);
     setDialogMode('edit');
     setDialogOpen(true);
   };
 
   const handlePreview = (agreement) => {
+    console.log("Preview clicked for agreement:", agreement.title);
     setSelectedAgreement(agreement);
     setDialogMode('preview');
     setDialogOpen(true);
@@ -149,27 +150,25 @@ const AgreementsPage = () => {
     try {
       const token = localStorage.getItem("token");
       console.log("Deleting agreement:", agreementId);
-      
+
       await axios.delete(`http://localhost:5000/api/landlord-agreements/${agreementId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       console.log("Agreement deleted successfully");
-      
-      // Remove from local state
+
       setAgreements(prev => prev.filter(agreement => agreement._id !== agreementId));
       setError("");
     } catch (error) {
       console.error("Error deleting agreement:", error);
-      
-      // Extract meaningful error message
+
       let errorMessage = "Failed to delete agreement";
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       }
-      
+
       setError(errorMessage);
     }
   };
@@ -180,33 +179,31 @@ const AgreementsPage = () => {
       let response;
 
       console.log("Saving agreement in mode:", mode);
-      
+
       if (mode === 'create') {
         console.log("Creating new agreement...");
         response = await axios.post("http://localhost:5000/api/landlord-agreements", formData, {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'
           }
         });
-        
+
         console.log("Agreement created successfully:", response.data);
-        
-        // Add new agreement to the list
+
         setAgreements(prev => [response.data.agreement, ...prev]);
       } else if (mode === 'edit') {
         console.log("Updating agreement:", selectedAgreement._id);
         response = await axios.put(`http://localhost:5000/api/landlord-agreements/${selectedAgreement._id}`, formData, {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'
           }
         });
-        
+
         console.log("Agreement updated successfully:", response.data);
-        
-        // Update agreement in the list
-        setAgreements(prev => prev.map(agreement => 
+
+        setAgreements(prev => prev.map(agreement =>
           agreement._id === selectedAgreement._id ? response.data.agreement : agreement
         ));
       }
@@ -214,7 +211,7 @@ const AgreementsPage = () => {
       setError("");
     } catch (error) {
       console.error("Error saving agreement:", error);
-      
+
       // Extract meaningful error message
       let errorMessage = "Failed to save agreement";
       if (error.response?.data?.message) {
@@ -224,7 +221,7 @@ const AgreementsPage = () => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
       throw error; // Re-throw to let dialog handle the error
     }
@@ -234,7 +231,6 @@ const AgreementsPage = () => {
 
   const filteredAgreements = filterAgreements();
 
-  // Calculate statistics
   const stats = {
     total: agreements.length,
     active: agreements.filter(a => a.status === "Active").length,
@@ -279,77 +275,6 @@ const AgreementsPage = () => {
         </Alert>
       )}
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Total Agreements
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {stats.total}
-                  </Typography>
-                </Box>
-                <DescriptionIcon sx={{ fontSize: 40, color: "primary.main" }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Active
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {stats.active}
-                  </Typography>
-                </Box>
-                <CheckCircleIcon sx={{ fontSize: 40, color: "success.main" }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Draft
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {stats.draft}
-                  </Typography>
-                </Box>
-                <DescriptionIcon sx={{ fontSize: 40, color: "info.main" }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Expired
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {stats.expired}
-                  </Typography>
-                </Box>
-                <CancelIcon sx={{ fontSize: 40, color: "error.main" }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
 
       {/* Search and Filters */}
       <Card sx={{ mb: 4 }}>
@@ -370,22 +295,7 @@ const AgreementsPage = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={statusFilter}
-                  label="Status"
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <MenuItem value="">All Statuses</MenuItem>
-                  <MenuItem value="Active">Active</MenuItem>
-                  <MenuItem value="Draft">Draft</MenuItem>
-                  <MenuItem value="Expired">Expired</MenuItem>
-                  <MenuItem value="Terminated">Terminated</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel>Property</InputLabel>
@@ -428,9 +338,9 @@ const AgreementsPage = () => {
             {agreements.length === 0 ? "No agreements created yet" : "No agreements match your filters"}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            {agreements.length === 0 
+            {/* {agreements.length === 0 
               ? "Start by creating your first rental agreement to manage tenant relationships."
-              : "Try adjusting your search criteria or filters to find agreements."}
+              : "Try adjusting your search criteria or filters to find agreements."} */}
           </Typography>
           {agreements.length === 0 && (
             <Button

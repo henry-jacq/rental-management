@@ -13,7 +13,7 @@ This rental management system provides a complete solution for property rental o
 - **Image Upload**: Multiple image support for property listings with drag-and-drop interface
 - **Tenant Management**: View and manage tenant information and lease agreements
 - **Payment Tracking**: Monitor rent payments and generate financial reports
-- **Maintenance Requests**: Handle property maintenance and repair requests
+
 - **Dashboard Analytics**: Overview of properties, tenants, and financial metrics
 - **Rental Type Options**: Specify properties as rental, lease, or both
 
@@ -22,7 +22,7 @@ This rental management system provides a complete solution for property rental o
 - **Property Details**: View comprehensive property information with image galleries
 - **Contact Landlords**: Express interest and communicate directly with property owners
 - **Payment Management**: Track rent payments and payment history
-- **Maintenance Requests**: Submit and track property maintenance requests
+
 - **Profile Management**: Update personal information and preferences
 - **Favorites System**: Save and manage favorite properties
 
@@ -133,14 +133,14 @@ The system supports two user roles:
 ### Landlord
 - Manage multiple properties
 - View tenant information
-- Handle maintenance requests
+
 - Generate reports and analytics
 - Upload property images
 
 ### Tenant
 - Browse available properties
 - Contact landlords
-- Submit maintenance requests
+
 - Track payment history
 - Manage profile and preferences
 

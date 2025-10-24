@@ -40,7 +40,8 @@ import {
 } from "@mui/icons-material";
 
 const RequestsPage = () => {
-  const [requests, setRequests] = useState([]);
+  const [requests, setRequests] = useState([]); // Filtered requests for table display
+  const [allRequests, setAllRequests] = useState([]); // All requests for statistics
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -62,7 +63,14 @@ const RequestsPage = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setRequests(data.requests || []);
+        const allRequestsData = data.requests || [];
+        
+        // Store all requests for statistics
+        setAllRequests(allRequestsData);
+        
+        // Filter out completed requests for table display - they represent active property assignments, not pending requests
+        const activeRequests = allRequestsData.filter(request => request.status !== 'Completed');
+        setRequests(activeRequests);
       } else {
         console.error('Failed to fetch requests');
       }
@@ -175,50 +183,38 @@ const RequestsPage = () => {
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                Total Requests
+                Completed Requests
               </Typography>
-              <Typography variant="h4">
-                {requests.length}
+              <Typography variant="h4" color="success.main">
+                {allRequests.filter(r => r.status === "Completed").length}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                Pending Review
+                Rejected Requests
               </Typography>
-              <Typography variant="h4">
-                {requests.filter(r => r.status === "Pending").length}
+              <Typography variant="h4" color="error.main">
+                {allRequests.filter(r => r.status === "Rejected").length}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                Awaiting Action
+                In Progress
               </Typography>
-              <Typography variant="h4">
-                {requests.filter(r => r.status === "Agreement_Sent").length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Completed
-              </Typography>
-              <Typography variant="h4">
-                {requests.filter(r => r.status === "Completed").length}
+              <Typography variant="h4" color="primary.main">
+                {allRequests.filter(r => ["Pending", "Approved", "Agreement_Sent", "Agreement_Accepted"].includes(r.status)).length}
               </Typography>
             </CardContent>
           </Card>

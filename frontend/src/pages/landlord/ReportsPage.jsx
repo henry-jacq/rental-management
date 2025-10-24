@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -40,7 +40,7 @@ const ReportsPage = () => {
     monthlyBreakdown: []
   });
   const [propertyData, setPropertyData] = useState([]);
-  const [maintenanceData, setMaintenanceData] = useState([]);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ const ReportsPage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      
+
       // Fetch financial data
       if (reportType === "financial") {
         const response = await fetch(`/api/reports/financial?range=${dateRange}`, {
@@ -65,7 +65,7 @@ const ReportsPage = () => {
           setFinancialData(data);
         }
       }
-      
+
       // Fetch property data
       if (reportType === "property") {
         const response = await fetch(`/api/reports/property?range=${dateRange}`, {
@@ -79,20 +79,8 @@ const ReportsPage = () => {
           setPropertyData(data);
         }
       }
-      
-      // Fetch maintenance data
-      if (reportType === "maintenance") {
-        const response = await fetch(`/api/reports/maintenance?range=${dateRange}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setMaintenanceData(data);
-        }
-      }
+
+
     } catch (error) {
       console.error('Error fetching reports data:', error);
     } finally {
@@ -243,37 +231,7 @@ const ReportsPage = () => {
     </Paper>
   );
 
-  const renderMaintenanceReport = () => (
-    <Paper sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Maintenance Report
-      </Typography>
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Month</TableCell>
-              <TableCell align="right">Total Requests</TableCell>
-              <TableCell align="right">Completed</TableCell>
-              <TableCell align="right">Pending</TableCell>
-              <TableCell align="right">Total Cost</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {maintenanceData.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell>{row.month}</TableCell>
-                <TableCell align="right">{row.requests}</TableCell>
-                <TableCell align="right">{row.completed}</TableCell>
-                <TableCell align="right">{row.pending}</TableCell>
-                <TableCell align="right">₹{row.cost.toLocaleString()}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Paper>
-  );
+
 
   return (
     <Box>
@@ -297,7 +255,7 @@ const ReportsPage = () => {
               >
                 <MenuItem value="financial">Financial Report</MenuItem>
                 <MenuItem value="property">Property Report</MenuItem>
-                <MenuItem value="maintenance">Maintenance Report</MenuItem>
+
               </Select>
             </FormControl>
           </Grid>
@@ -332,7 +290,7 @@ const ReportsPage = () => {
       {/* Report Content */}
       {reportType === "financial" && renderFinancialReport()}
       {reportType === "property" && renderPropertyReport()}
-      {reportType === "maintenance" && renderMaintenanceReport()}
+
     </Box>
   );
 };

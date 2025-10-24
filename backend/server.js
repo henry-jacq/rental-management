@@ -4,9 +4,9 @@ import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/auth.js"; // must match the path
 import dashboardRoutes from "./routes/dashboard.js";
-import paymentsRoutes from "./routes/payments.js";
+
 import tenantsRoutes from "./routes/tenants.js";
-import maintenanceRoutes from "./routes/maintenance.js";
+
 import reportsRoutes from "./routes/reports.js";
 import propertiesRoutes from "./routes/properties.js";
 import propertyRequestsRoutes from "./routes/propertyRequests.js";
@@ -27,9 +27,8 @@ app.use('/uploads', express.static('uploads'));
 app.use("/api/auth", authRoutes);
 // Apply user data middleware to all protected routes
 app.use("/api/dashboard", verifyToken(), attachUserData, dashboardRoutes);
-app.use("/api/payments", verifyToken(), attachUserData, paymentsRoutes);
+
 app.use("/api/tenants", verifyToken(), attachUserData, tenantsRoutes);
-app.use("/api/maintenance", verifyToken(), attachUserData, maintenanceRoutes);
 app.use("/api/reports", verifyToken(), attachUserData, reportsRoutes);
 app.use("/api/properties", verifyToken(), attachUserData, propertiesRoutes);
 app.use("/api/property-requests", verifyToken(), attachUserData, propertyRequestsRoutes);

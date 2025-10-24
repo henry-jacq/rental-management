@@ -6,41 +6,34 @@ import {
   DialogActions,
   Button,
   TextField,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Typography,
   Box,
   IconButton,
-  Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondaryAction,
   CircularProgress,
 } from "@mui/material";
 import {
   Close as CloseIcon,
-  AttachFile as AttachFileIcon,
-  Download as DownloadIcon,
-  Delete as DeleteIcon,
   Save as SaveIcon,
 } from "@mui/icons-material";
-import FileUpload from "./FileUpload";
 
 const AgreementDialog = ({
   open,
   onClose,
   mode, // 'create', 'edit', 'preview'
   agreement,
-  properties,
-  tenants,
+  properties = [],
+  tenants = [],
   onSave,
   loading = false
 }) => {
+  // Debug logging
+  console.log('AgreementDialog render:', {
+    open,
+    mode,
+    agreementTitle: agreement?.title,
+    propertiesCount: properties?.length,
+    tenantsCount: tenants?.length
+  });
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -50,43 +43,41 @@ const AgreementDialog = ({
     status: "Draft",
     expiresAt: "",
   });
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [existingDocuments, setExistingDocuments] = useState([]);
-  const [documentsToRemove, setDocumentsToRemove] = useState([]);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
   // Initialize form data when dialog opens or agreement changes
   useEffect(() => {
+    console.log('AgreementDialog useEffect triggered:', { open, mode, agreement: agreement?.title });
     if (open) {
-      if (mode === 'create') {
-        setFormData({
-          title: "",
-          description: "",
-          terms: "",
-          property: "",
-          tenant: "", // Keep in state but won't be shown in create mode
-          status: "Draft",
-          expiresAt: "",
-        });
-        setSelectedFiles([]);
-        setExistingDocuments([]);
-        setDocumentsToRemove([]);
-      } else if (agreement && (mode === 'edit' || mode === 'preview')) {
-        setFormData({
-          title: agreement.title || "",
-          description: agreement.description || "",
-          terms: agreement.terms || "",
-          property: agreement.property?._id || "",
-          tenant: agreement.tenant?._id || "",
-          status: agreement.status || "Draft",
-          expiresAt: agreement.expiresAt ? agreement.expiresAt.split('T')[0] : "",
-        });
-        setSelectedFiles([]);
-        setExistingDocuments(agreement.documents || []);
-        setDocumentsToRemove([]);
+      try {
+        if (mode === 'create') {
+          console.log('Setting up create mode');
+          setFormData({
+            title: "",
+            description: "",
+            terms: "",
+            property: "",
+            tenant: "",
+            status: "Draft",
+            expiresAt: "",
+          });
+        } else if (agreement && (mode === 'edit' || mode === 'preview')) {
+          console.log('Setting up edit/preview mode with agreement:', agreement);
+          setFormData({
+            title: agreement.title || "",
+            description: agreement.description || "",
+            terms: agreement.terms || "",
+            property: agreement.property?._id || "",
+            tenant: agreement.tenant?._id || "",
+            status: agreement.status || "Draft",
+            expiresAt: agreement.expiresAt ? agreement.expiresAt.split('T')[0] : "",
+          });
+        }
+        setErrors({});
+      } catch (error) {
+        console.error('Error initializing dialog:', error);
       }
-      setErrors({});
     }
   }, [open, mode, agreement]);
 
@@ -105,42 +96,7 @@ const AgreementDialog = ({
     }
   };
 
-  const handleFilesSelected = (files) => {
-    setSelectedFiles(files);
-  };
 
-  const handleRemoveExistingDocument = (documentId) => {
-    setDocumentsToRemove(prev => [...prev, documentId]);
-    setExistingDocuments(prev => prev.filter(doc => doc._id !== documentId));
-  };
-
-  const handleDownloadDocument = async (doc) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `http://localhost:5000/api/landlord-agreements/${agreement._id}/download/${doc._id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = doc.originalName;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } else {
-        console.error('Failed to download document');
-      }
-    } catch (error) {
-      console.error('Error downloading document:', error);
-    }
-  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -170,38 +126,17 @@ const AgreementDialog = ({
     try {
       const formDataToSend = new FormData();
 
-      console.log("Preparing form data for submission...");
-
-      // Add form fields (exclude tenant for create mode)
+      // Add form fields
       Object.keys(formData).forEach(key => {
         if (formData[key] !== "") {
-          // Skip tenant field when creating new agreement
-          if (mode === 'create' && key === 'tenant') {
-            return;
-          }
           formDataToSend.append(key, formData[key]);
-          console.log(`Added field ${key}:`, formData[key]);
         }
       });
 
-      // Add documents to remove (for edit mode)
-      if (mode === 'edit' && documentsToRemove.length > 0) {
-        formDataToSend.append('removeDocuments', JSON.stringify(documentsToRemove));
-        console.log("Documents to remove:", documentsToRemove);
-      }
-
-      // Add new files
-      selectedFiles.forEach((file, index) => {
-        formDataToSend.append('documents', file);
-        console.log(`Added file ${index}:`, file.name);
-      });
-
-      console.log("Submitting form data...");
       await onSave(formDataToSend, mode);
       handleClose();
     } catch (error) {
       console.error('Error saving agreement:', error);
-      // Error is handled by parent component
     } finally {
       setSubmitting(false);
     }
@@ -217,9 +152,6 @@ const AgreementDialog = ({
       status: "Draft",
       expiresAt: "",
     });
-    setSelectedFiles([]);
-    setExistingDocuments([]);
-    setDocumentsToRemove([]);
     setErrors({});
     onClose();
   };
@@ -236,96 +168,64 @@ const AgreementDialog = ({
   const isReadOnly = mode === 'preview';
   const canEdit = mode === 'edit' && (agreement?.status === 'Draft' || agreement?.status === 'Active');
 
-  return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: { minHeight: '70vh' }
-      }}
-    >
-      <DialogTitle>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">{getDialogTitle()}</Typography>
-          <IconButton onClick={handleClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
+  console.log('AgreementDialog rendering:', { open, mode, formData });
 
-      <DialogContent dividers>
-        <Grid container spacing={3}>
-          {/* Basic Information */}
-          <Grid item xs={12}>
-            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-              Basic Information
+  // If dialog is not open, don't render anything
+  if (!open) {
+    console.log('Dialog not open, returning null');
+    return null;
+  }
+
+  try {
+    return (
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            minHeight: '70vh',
+            '& .MuiDialogContent-root': {
+              padding: '20px',
+            }
+          }
+        }}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">{getDialogTitle()}</Typography>
+            <IconButton onClick={handleClose} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent dividers sx={{ minHeight: '400px', padding: '24px' }}>
+          {/* Header info */}
+          <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+            <Typography variant="h6" color="primary">
+              {mode === 'create' ? 'Create New Agreement' :
+                mode === 'edit' ? 'Edit Agreement' : 'Agreement Preview'}
             </Typography>
-          </Grid>
+            {agreement && (
+              <Typography variant="body2" color="text.secondary">
+                {agreement.title}
+              </Typography>
+            )}
+          </Box>
 
-          <Grid item xs={12}>
+          {/* Form Content */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <TextField
               fullWidth
               label="Agreement Title"
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              error={!!errors.title}
-              helperText={errors.title}
               disabled={isReadOnly}
               required
             />
-          </Grid>
 
-          <Grid item xs={12} sm={mode === 'create' ? 12 : 6}>
-            <FormControl fullWidth disabled={isReadOnly}>
-              <InputLabel>Property</InputLabel>
-              <Select
-                value={formData.property}
-                label="Property"
-                onChange={(e) => handleInputChange('property', e.target.value)}
-              >
-                <MenuItem value="">
-                  <em>Select Property (Optional)</em>
-                </MenuItem>
-                {properties.map((property) => (
-                  <MenuItem key={property._id} value={property._id}>
-                    {property.title}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            {mode === 'create' && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                You can assign a tenant to this agreement later by editing it.
-              </Typography>
-            )}
-          </Grid>
-
-          {/* Tenant field - only show in edit/preview mode */}
-          {mode !== 'create' && (
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={isReadOnly}>
-                <InputLabel>Tenant</InputLabel>
-                <Select
-                  value={formData.tenant}
-                  label="Tenant"
-                  onChange={(e) => handleInputChange('tenant', e.target.value)}
-                >
-                  <MenuItem value="">
-                    <em>Select Tenant</em>
-                  </MenuItem>
-                  {tenants.map((tenant) => (
-                    <MenuItem key={tenant._id} value={tenant._id}>
-                      {tenant.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          )}
-
-          <Grid item xs={12}>
             <TextField
               fullWidth
               label="Description"
@@ -335,180 +235,64 @@ const AgreementDialog = ({
               rows={3}
               disabled={isReadOnly}
             />
-          </Grid>
 
-          {/* Terms and Conditions */}
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-              Terms & Conditions
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12}>
             <TextField
               fullWidth
               label="Terms & Conditions"
               value={formData.terms}
               onChange={(e) => handleInputChange('terms', e.target.value)}
               multiline
-              rows={6}
-              error={!!errors.terms}
-              helperText={errors.terms || "Enter the detailed terms and conditions of the agreement"}
+              rows={4}
               disabled={isReadOnly}
-              required
+              placeholder="Enter agreement terms..."
             />
-          </Grid>
 
-          {/* Agreement Details */}
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-              Agreement Details
-            </Typography>
-          </Grid>
+            {mode !== 'create' && agreement && (
+              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Status: {agreement.status || 'Unknown'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Created: {new Date(agreement.createdAt).toLocaleDateString()}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
 
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth disabled={isReadOnly}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={formData.status}
-                label="Status"
-                onChange={(e) => handleInputChange('status', e.target.value)}
-              >
-                <MenuItem value="Draft">Draft</MenuItem>
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Expired">Expired</MenuItem>
-                <MenuItem value="Terminated">Terminated</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Expiry Date"
-              type="date"
-              value={formData.expiresAt}
-              onChange={(e) => handleInputChange('expiresAt', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              error={!!errors.expiresAt}
-              helperText={errors.expiresAt}
-              disabled={isReadOnly}
-            />
-          </Grid>
-
-          {/* Documents Section */}
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-              Documents
-            </Typography>
-          </Grid>
-
-          {/* Existing Documents */}
-          {existingDocuments.length > 0 && (
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Existing Documents
-              </Typography>
-              <List dense>
-                {existingDocuments.map((document) => (
-                  <ListItem key={document._id} divider>
-                    <ListItemIcon>
-                      <AttachFileIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={document.originalName}
-                      secondary={`${(document.size / 1024 / 1024).toFixed(2)} MB`}
-                    />
-                    <ListItemSecondaryAction>
-                      <IconButton
-                        edge="end"
-                        onClick={() => handleDownloadDocument(document)}
-                        sx={{ mr: 1 }}
-                      >
-                        <DownloadIcon />
-                      </IconButton>
-                      {!isReadOnly && (
-                        <IconButton
-                          edge="end"
-                          onClick={() => handleRemoveExistingDocument(document._id)}
-                          color="error"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      )}
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                ))}
-              </List>
-            </Grid>
-          )}
-
-          {/* File Upload */}
-          {!isReadOnly && (
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                {mode === 'edit' ? 'Add New Documents' : 'Upload Documents'}
-              </Typography>
-              <FileUpload
-                onFilesSelected={handleFilesSelected}
-                maxFiles={10}
-                maxSize={10 * 1024 * 1024} // 10MB
-                acceptedTypes={['.pdf', '.doc', '.docx', '.txt']}
-              />
-            </Grid>
-          )}
-
-          {/* Preview Mode Additional Info */}
-          {mode === 'preview' && agreement && (
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-                Agreement Information
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    Created: {new Date(agreement.createdAt).toLocaleDateString()}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    Last Updated: {new Date(agreement.updatedAt).toLocaleDateString()}
-                  </Typography>
-                </Grid>
-                {agreement.signedAt && (
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Signed: {new Date(agreement.signedAt).toLocaleDateString()}
-                    </Typography>
-                  </Grid>
-                )}
-              </Grid>
-            </Grid>
-          )}
-        </Grid>
-      </DialogContent>
-
-      <DialogActions sx={{ p: 3 }}>
-        <Button onClick={handleClose} disabled={submitting}>
-          {mode === 'preview' ? 'Close' : 'Cancel'}
-        </Button>
-        {!isReadOnly && (
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={submitting || (mode === 'edit' && !canEdit)}
-            startIcon={submitting ? <CircularProgress size={20} /> : <SaveIcon />}
-          >
-            {submitting ? 'Saving...' : (mode === 'create' ? 'Create Agreement' : 'Update Agreement')}
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={handleClose} disabled={submitting}>
+            {mode === 'preview' ? 'Close' : 'Cancel'}
           </Button>
-        )}
-      </DialogActions>
-    </Dialog>
-  );
+          {!isReadOnly && (
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={submitting || (mode === 'edit' && !canEdit)}
+              startIcon={submitting ? <CircularProgress size={20} /> : <SaveIcon />}
+            >
+              {submitting ? 'Saving...' : (mode === 'create' ? 'Create Agreement' : 'Update Agreement')}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+    );
+  } catch (error) {
+    console.error('Error rendering AgreementDialog:', error);
+    return (
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Error</DialogTitle>
+        <DialogContent>
+          <Typography color="error">
+            Failed to load dialog: {error.message}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    );
+  }
 };
 
 export default AgreementDialog;

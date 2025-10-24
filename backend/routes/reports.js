@@ -64,33 +64,6 @@ router.get("/property", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Get maintenance reports
-router.get("/maintenance", requireRole(["landlord"]), async (req, res) => {
-  try {
-    // In a real application, calculate from database
-    const maintenanceData = [
-      { 
-        month: "Current Month", 
-        requests: 5, 
-        completed: 3, 
-        pending: 2, 
-        cost: 800,
-        landlordId: req.userData._id
-      },
-      { 
-        month: "Previous Month", 
-        requests: 8, 
-        completed: 7, 
-        pending: 1, 
-        cost: 1200,
-        landlordId: req.userData._id
-      }
-    ];
 
-    res.json(maintenanceData);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 export default router;

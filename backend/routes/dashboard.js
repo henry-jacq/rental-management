@@ -1,23 +1,12 @@
 import express from "express";
 import { requireRole } from "../middleware/auth.js";
 import User from "../models/User.js";
+import PropertyRequest from "../models/PropertyRequest.js";
+import Property from "../models/Property.js";
 
 const router = express.Router();
 
-// Cache for dashboard data (in production, use Redis or similar)
-const dashboardCache = new Map();
-
 router.get("/tenant", requireRole(["tenant"]), (req, res) => {
-  const cacheKey = `tenant_${req.userData._id}`;
-
-  // Check cache first
-  if (dashboardCache.has(cacheKey)) {
-    const cachedData = dashboardCache.get(cacheKey);
-    if (Date.now() - cachedData.timestamp < 300000) { // 5 minutes cache
-      return res.json(cachedData.data);
-    }
-  }
-
   // Use real user data from database
   const dashboardData = {
     message: `Welcome Tenant ${req.userData.name}`,
@@ -31,7 +20,7 @@ router.get("/tenant", requireRole(["tenant"]), (req, res) => {
     },
     stats: {
       rentDue: req.userData.lease?.rentAmount || 0,
-      maintenanceRequests: 2, // TODO: Calculate from maintenance requests
+
       leaseStatus: req.userData.lease?.status || "Pending",
       nextPaymentDate: "December 1, 2024" // TODO: Calculate next payment date
     },
@@ -42,57 +31,62 @@ router.get("/tenant", requireRole(["tenant"]), (req, res) => {
     ]
   };
 
-  // Cache the response
-  dashboardCache.set(cacheKey, {
-    data: dashboardData,
-    timestamp: Date.now()
-  });
-
   res.json(dashboardData);
 });
 
-router.get("/landlord", requireRole(["landlord"]), (req, res) => {
-  const cacheKey = `landlord_${req.userData._id}`;
+router.get("/landlord", requireRole(["landlord"]), async (req, res) => {
+  try {
+    // Calculate active tenants from completed property requests
+    const activeTenants = await PropertyRequest.countDocuments({
+      landlord: req.userData._id,
+      status: "Completed"
+    });
 
-  // Check cache first
-  if (dashboardCache.has(cacheKey)) {
-    const cachedData = dashboardCache.get(cacheKey);
-    if (Date.now() - cachedData.timestamp < 300000) { // 5 minutes cache
-      return res.json(cachedData.data);
-    }
+    // Calculate total properties owned
+    const totalProperties = await Property.countDocuments({
+      landlord: req.userData._id
+    });
+
+    // Calculate monthly revenue from active leases
+    const completedRequests = await PropertyRequest.find({
+      landlord: req.userData._id,
+      status: "Completed"
+    });
+    
+    const monthlyRevenue = completedRequests.reduce((total, request) => {
+      return total + (request.rentAmount || 0);
+    }, 0);
+
+    // Calculate occupancy rate
+    const occupancyRate = totalProperties > 0 ? Math.round((activeTenants / totalProperties) * 100) : 0;
+
+    const dashboardData = {
+      message: `Welcome Landlord ${req.userData.name}`,
+      user: {
+        id: req.userData._id,
+        name: req.userData.name,
+        role: req.userData.role,
+        email: req.userData.email,
+        phone: req.userData.phone,
+        initials: req.userData.initials
+      },
+      stats: {
+        totalProperties,
+        activeTenants,
+        monthlyRevenue,
+        occupancyRate
+      },
+      recentActivity: [
+        // TODO: Fetch from payments collection
+        { type: "Payment", description: "Recent rent payment received", amount: 1200 }
+      ]
+    };
+
+    res.json(dashboardData);
+  } catch (error) {
+    console.error("Error fetching landlord dashboard:", error);
+    res.status(500).json({ error: error.message });
   }
-
-  // Use real user data from database
-  const dashboardData = {
-    message: `Welcome Landlord ${req.userData.name}`,
-    user: {
-      id: req.userData._id,
-      name: req.userData.name,
-      role: req.userData.role,
-      email: req.userData.email,
-      phone: req.userData.phone,
-      initials: req.userData.initials
-    },
-    stats: {
-      totalProperties: req.userData.propertiesOwned?.length || 0,
-      activeTenants: 12, // TODO: Calculate from active leases
-      monthlyRevenue: 8500, // TODO: Calculate from rent amounts
-      occupancyRate: 92 // TODO: Calculate occupancy rate
-    },
-    recentActivity: [
-      // TODO: Fetch from payments and maintenance collections
-      { type: "Payment", description: "Recent rent payment received", amount: 1200 },
-      { type: "Maintenance", description: "Maintenance request submitted", status: "In Progress" }
-    ]
-  };
-
-  // Cache the response
-  dashboardCache.set(cacheKey, {
-    data: dashboardData,
-    timestamp: Date.now()
-  });
-
-  res.json(dashboardData);
 });
 
 // User profile endpoint
@@ -130,7 +124,7 @@ router.get("/profile", async (req, res) => {
       ...(req.userData.role === 'tenant' && {
         propertyRented: req.userData.propertyRented,
         lease: req.userData.lease,
-        uploadedDocuments: req.userData.uploadedDocuments || []
+
       })
     };
 

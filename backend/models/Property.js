@@ -54,7 +54,7 @@ const PropertySchema = new mongoose.Schema(
     // Property status
     status: {
       type: String,
-      enum: ["Available", "Rented", "Under Maintenance", "Inactive"],
+      enum: ["Available", "Rented", "Inactive"],
       default: "Available"
     },
     

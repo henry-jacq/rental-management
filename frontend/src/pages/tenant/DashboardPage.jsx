@@ -10,35 +10,22 @@ import {
   Chip,
   Button,
   CardMedia,
-  Divider,
-  Alert,
+  CircularProgress,
 } from "@mui/material";
 import {
-  AttachMoney as AttachMoneyIcon,
-  Build as BuildIcon,
   Assignment as AssignmentIcon,
-  Schedule as ScheduleIcon,
   Home as HomeIcon,
   LocationOn as LocationIcon,
-  Person as PersonIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  CalendarToday as CalendarIcon,
 } from "@mui/icons-material";
 import { useUser } from "../../contexts/UserContext";
+import { useNavigate } from "react-router-dom";
 
 const DashboardPage = () => {
-  const { user } = useUser();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    rentDue: 0,
-    maintenanceRequests: 0,
-    leaseStatus: "Active",
-    nextPaymentDate: "December 1, 2024"
-  });
-  const [recentPayments, setRecentPayments] = useState([]);
+  const { user, loading: userLoading } = useUser();
+  const navigate = useNavigate();
   const [currentProperty, setCurrentProperty] = useState(null);
   const [propertyRequests, setPropertyRequests] = useState([]);
+  const [myProperties, setMyProperties] = useState([]);
   const [hasActiveProperty, setHasActiveProperty] = useState(false);
 
   useEffect(() => {
@@ -46,21 +33,7 @@ const DashboardPage = () => {
       try {
         const token = localStorage.getItem("token");
 
-        // Fetch dashboard data
-        const dashboardRes = await axios.get("http://localhost:5000/api/dashboard/tenant", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (dashboardRes.data?.stats) setStats(dashboardRes.data.stats);
-
-        // Format recent payments with currency
-        if (dashboardRes.data?.recentPayments) {
-          const formattedPayments = dashboardRes.data.recentPayments.map(payment => ({
-            ...payment,
-            amount: `₹${payment.amount.toLocaleString()}`
-          }));
-          setRecentPayments(formattedPayments);
-        }
+        // Note: Dashboard stats can be fetched here if needed in the future
 
         // Fetch current property information
         await fetchCurrentProperty(token);
@@ -68,11 +41,12 @@ const DashboardPage = () => {
         // Fetch property requests
         await fetchPropertyRequests(token);
 
+        // Fetch my properties (acquired properties)
+        await fetchMyProperties(token);
+
       } catch (err) {
         console.error("Error fetching data:", err);
         // Keep existing user data from context if API fails
-      } finally {
-        setLoading(false);
       }
     };
     fetchData();
@@ -117,8 +91,53 @@ const DashboardPage = () => {
     }
   };
 
-  const StatCard = ({ icon, title, value, subtitle, color = "primary", action }) => (
-    <Card sx={{ height: "100%" }}>
+  const fetchMyProperties = async (token) => {
+    try {
+      // Fetch tenant's acquired properties from completed requests
+      const response = await axios.get("http://localhost:5000/api/property-requests/tenant?status=Completed", {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data?.requests) {
+        // Transform completed requests to property format
+        const acquiredProperties = response.data.requests.map(request => ({
+          ...request.property,
+          id: request.property._id,
+          lease: {
+            startDate: request.leaseStartDate,
+            endDate: request.leaseEndDate,
+            rentAmount: request.rentAmount,
+            securityDeposit: request.securityDeposit,
+            status: 'Active'
+          },
+          requestId: request._id,
+          assignedAt: request.assignedAt
+        }));
+        
+        setMyProperties(acquiredProperties);
+      }
+    } catch (err) {
+      console.error("Error fetching my properties:", err);
+      setMyProperties([]);
+    }
+  };
+
+  const StatCard = ({ icon, title, value, subtitle, color = "primary", action, onClick }) => (
+    <Card 
+      sx={{ 
+        height: "100%",
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': onClick ? {
+          transform: 'translateY(-2px)',
+          boxShadow: (theme) => theme.shadows[4],
+        } : {}
+      }}
+      onClick={onClick}
+    >
       <CardContent sx={{ p: 3 }}>
         <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 2 }}>
           <Box>
@@ -147,6 +166,24 @@ const DashboardPage = () => {
     </Card>
   );
 
+  // Show loading while UserContext is loading
+  if (userLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Redirect if no user data
+  if (!user) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <Typography>Please log in to access the dashboard.</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       {/* Header */}
@@ -165,7 +202,7 @@ const DashboardPage = () => {
           </Box>
         </Box>
         <Typography variant="body1" color="text.secondary">
-          Manage your rental account and stay up to date with payments.
+          Manage your rental account and property requests.
         </Typography>
       </Box>
 
@@ -260,12 +297,6 @@ const DashboardPage = () => {
                 {user.lease && (
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                     <Chip
-                      icon={<CalendarIcon />}
-                      label={`Lease: ${new Date(user.lease.startDate).toLocaleDateString()} - ${new Date(user.lease.endDate).toLocaleDateString()}`}
-                      color="primary"
-                      variant="outlined"
-                    />
-                    <Chip
                       label={`Status: ${user.lease.status}`}
                       color="success"
                       variant="outlined"
@@ -279,287 +310,36 @@ const DashboardPage = () => {
       )}
 
       {/* Property Requests Status */}
-      {!hasActiveProperty && propertyRequests.length > 0 && (
-        <Alert severity="info" sx={{ mb: 4 }}>
-          <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }}>
-            Property Request Status
-          </Typography>
-          {propertyRequests.map((request, index) => (
-            <Box key={request._id} sx={{ mb: index < propertyRequests.length - 1 ? 1 : 0 }}>
-              <Typography variant="body2">
-                Request for <strong>{request.property?.title}</strong> -
-                <Chip
-                  label={request.statusDisplay || request.status}
-                  size="small"
-                  sx={{ ml: 1 }}
-                  color={
-                    request.status === 'Completed' ? 'success' :
-                      request.status === 'Agreement_Sent' ? 'primary' :
-                        request.status === 'Approved' ? 'info' :
-                          request.status === 'Rejected' ? 'error' : 'warning'
-                  }
-                />
-              </Typography>
-            </Box>
-          ))}
-        </Alert>
-      )}
+      
 
       {/* Stats Grid */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid item xs={12} sm={6} lg={4}>
           <StatCard
-            icon={<AttachMoneyIcon />}
-            title="Next Payment"
-            value={hasActiveProperty ? `₹${currentProperty?.rent?.toLocaleString() || stats.rentDue?.toLocaleString()}` : "No Property"}
-            subtitle={hasActiveProperty ? `Due ${stats.nextPaymentDate}` : "Acquire a property first"}
-            color={hasActiveProperty ? "error" : "default"}
-            action={hasActiveProperty ? "Pay Now" : null}
+            icon={<HomeIcon />}
+            title="My Properties"
+            value={myProperties.length}
+            subtitle={myProperties.length > 0 
+              ? `${myProperties.filter(p => p.lease?.status === 'Active').length} active • ₹${myProperties.reduce((total, p) => total + (p.lease?.rentAmount || p.rent || 0), 0).toLocaleString()}/month`
+              : "No properties acquired"}
+            color="primary"
+            onClick={() => navigate('/tenant/properties')}
           />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
-          <StatCard
-            icon={<BuildIcon />}
-            title="Maintenance"
-            value={stats.maintenanceRequests}
-            subtitle="Open requests"
-            color="warning"
-            action={hasActiveProperty ? "View Requests" : null}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid item xs={12} sm={6} lg={4}>
           <StatCard
             icon={<AssignmentIcon />}
             title="Property Requests"
             value={propertyRequests.length}
-            subtitle={`${propertyRequests.filter(r => r.status === 'Pending').length} pending`}
+            subtitle={propertyRequests.length > 0 ? `${propertyRequests.filter(r => r.status === 'Pending').length} pending` : "No requests submitted"}
             color="secondary"
-            action="View Requests"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
-          <StatCard
-            icon={<ScheduleIcon />}
-            title="Lease Status"
-            value={hasActiveProperty ? (user.lease?.status || "Active") : "No Lease"}
-            subtitle={hasActiveProperty ? "Property assigned" : "No active property"}
-            color={hasActiveProperty ? "success" : "default"}
+            onClick={() => navigate('/tenant/requests')}
           />
         </Grid>
       </Grid>
 
-      {/* Content Grid */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} lg={6}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 500, mb: 3 }}>
-                {hasActiveProperty ? "Recent Payments" : "Property Request Activity"}
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {hasActiveProperty ? (
-                  recentPayments.length > 0 ? (
-                    recentPayments.map((payment, index) => (
-                      <Box
-                        key={index}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          p: 2,
-                          backgroundColor: "background.default",
-                          borderRadius: 1,
-                          border: "1px solid",
-                          borderColor: "divider",
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                            Rent Payment
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {payment.date}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ textAlign: "right" }}>
-                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                            {payment.amount}
-                          </Typography>
-                          <Chip
-                            label={payment.status}
-                            size="small"
-                            color="success"
-                            variant="outlined"
-                          />
-                        </Box>
-                      </Box>
-                    ))
-                  ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                      No payment history available yet
-                    </Typography>
-                  )
-                ) : (
-                  propertyRequests.length > 0 ? (
-                    propertyRequests.slice(0, 3).map((request, index) => (
-                      <Box
-                        key={index}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          p: 2,
-                          backgroundColor: "background.default",
-                          borderRadius: 1,
-                          border: "1px solid",
-                          borderColor: "divider",
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <HomeIcon sx={{ mr: 2, color: 'primary.main' }} />
-                          <Box>
-                            <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                              {request.property?.title}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {new Date(request.createdAt).toLocaleDateString()}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Chip
-                          label={request.statusDisplay || request.status}
-                          size="small"
-                          color={
-                            request.status === 'Completed' ? 'success' :
-                              request.status === 'Agreement_Sent' ? 'primary' :
-                                request.status === 'Approved' ? 'info' :
-                                  request.status === 'Rejected' ? 'error' : 'warning'
-                          }
-                          variant="outlined"
-                        />
-                      </Box>
-                    ))
-                  ) : (
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <HomeIcon sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
-                      <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-                        No property requests yet
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Browse available properties to get started
-                      </Typography>
-                    </Box>
-                  )
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} lg={6}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 500, mb: 3 }}>
-                {hasActiveProperty ? "Landlord Information" : "Getting Started"}
-              </Typography>
-
-              {hasActiveProperty && currentProperty ? (
-                <Box>
-                  {/* Landlord Info */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-                      {currentProperty.landlord?.name?.charAt(0) || 'L'}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                        {currentProperty.landlord?.name || 'Property Owner'}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Property Landlord
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Divider sx={{ mb: 3 }} />
-
-                  {/* Contact Information */}
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 500 }}>
-                    Contact Information
-                  </Typography>
-
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <EmailIcon sx={{ mr: 2, color: 'text.secondary', fontSize: 20 }} />
-                      <Typography variant="body2">
-                        {currentProperty.landlord?.email || 'Contact via platform'}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <PhoneIcon sx={{ mr: 2, color: 'text.secondary', fontSize: 20 }} />
-                      <Typography variant="body2">
-                        {currentProperty.landlord?.phone || 'Contact via platform'}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Divider sx={{ my: 3 }} />
-
-                  {/* Upcoming Events */}
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 500 }}>
-                    Upcoming Events
-                  </Typography>
-
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        p: 2,
-                        backgroundColor: "background.default",
-                        borderRadius: 1,
-                        border: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    >
-                      <Avatar sx={{ bgcolor: "error.main", mr: 2, width: 32, height: 32 }}>
-                        <AttachMoneyIcon fontSize="small" />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          Rent Payment Due
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {stats.nextPaymentDate}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </Box>
-              ) : (
-                <Box sx={{ textAlign: 'center', py: 2 }}>
-                  <HomeIcon sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
-                  <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }}>
-                    Find Your Perfect Home
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Browse available properties and submit requests to landlords
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                    <Button variant="contained" href="/tenant/properties">
-                      Browse Properties
-                    </Button>
-                    {propertyRequests.length > 0 && (
-                      <Button variant="outlined" href="/tenant/requests">
-                        View Requests
-                      </Button>
-                    )}
-                  </Box>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+    
+        
     </Box>
   );
 };

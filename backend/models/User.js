@@ -38,7 +38,7 @@ const LeaseDetailsSchema = new mongoose.Schema(
 const KYCSchema = new mongoose.Schema(
   {
     status: { type: String, enum: ["Pending", "Verified", "Rejected"], default: "Pending" },
-    documents: [{ type: mongoose.Schema.Types.ObjectId, ref: "Document" }],
+
   },
   { _id: false }
 );
@@ -51,20 +51,18 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ["tenant", "landlord"], required: true },
 
-    // Common
+ 
     address: { type: AddressSchema },
     paymentVault: { type: PaymentVaultSchema },
     kyc: { type: KYCSchema },
 
-    // Landlord specific
     propertiesOwned: [{ type: mongoose.Schema.Types.ObjectId, ref: "Property" }],
-    digitalSignature: { type: String }, // URL or base64
-    company: { type: String }, // Company name for landlords
+    digitalSignature: { type: String },
+    company: { type: String },
 
-    // Tenant specific
     propertyRented: { type: mongoose.Schema.Types.ObjectId, ref: "Property" },
     lease: { type: LeaseDetailsSchema },
-    uploadedDocuments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Document" }],
+
   },
   { timestamps: true }
 );

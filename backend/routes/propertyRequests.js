@@ -389,8 +389,8 @@ router.put("/:id/complete-assignment", requireRole(["landlord"]), async (req, re
 
     // Complete the assignment
     await request.completeAssignment({
-      startDate: new Date(leaseStartDate),
-      endDate: new Date(leaseEndDate),
+      startDate: leaseStartDate ? new Date(leaseStartDate) : null,
+      endDate: leaseEndDate ? new Date(leaseEndDate) : null,
       rentAmount: parseFloat(rentAmount),
       securityDeposit: parseFloat(securityDeposit)
     });
@@ -400,20 +400,32 @@ router.put("/:id/complete-assignment", requireRole(["landlord"]), async (req, re
     property.available = false;
     property.status = "Rented";
     property.currentTenant = request.tenant._id;
-    property.leaseStartDate = new Date(leaseStartDate);
-    property.leaseEndDate = new Date(leaseEndDate);
+    
+    // Only set lease dates if provided (for lease properties)
+    if (leaseStartDate && leaseEndDate) {
+      property.leaseStartDate = new Date(leaseStartDate);
+      property.leaseEndDate = new Date(leaseEndDate);
+    }
     await property.save();
 
     // Update tenant's rented property
     const tenant = await User.findById(request.tenant._id);
     tenant.propertyRented = request.property._id;
-    tenant.lease = {
-      startDate: new Date(leaseStartDate),
-      endDate: new Date(leaseEndDate),
+    
+    // Create lease object with conditional dates
+    const leaseData = {
       status: "Active",
       rentAmount: parseFloat(rentAmount),
       securityDeposit: parseFloat(securityDeposit)
     };
+    
+    // Only add lease dates if provided
+    if (leaseStartDate && leaseEndDate) {
+      leaseData.startDate = new Date(leaseStartDate);
+      leaseData.endDate = new Date(leaseEndDate);
+    }
+    
+    tenant.lease = leaseData;
     await tenant.save();
 
     await request.populate('property', 'title location address rent');

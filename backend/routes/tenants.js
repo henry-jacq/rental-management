@@ -1,45 +1,73 @@
 import express from "express";
 import { requireRole } from "../middleware/auth.js";
+import PropertyRequest from "../models/PropertyRequest.js";
+import Property from "../models/Property.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
-// Get all tenants for a landlord
+// Get all current tenants for a landlord (from completed property requests)
 router.get("/", requireRole(["landlord"]), async (req, res) => {
   try {
-    // In a real application, fetch from database based on landlord ID
-    // const tenants = await Tenant.find({ landlordId: req.user.id });
-    
-    // For now, return landlord-specific mock data
-    const tenants = [
-      {
-        id: 1,
-        name: `Tenant 1 of ${req.userData.name}`,
-        email: `tenant1.${req.userData._id}@example.com`,
-        phone: "+1 234-567-8900",
-        property: "Property A",
-        leaseStart: "2024-01-01",
-        leaseEnd: "2024-12-31",
-        status: "Active",
-        rent: 1200,
-        landlordId: req.userData._id
-      },
-      {
-        id: 2,
-        name: `Tenant 2 of ${req.userData.name}`,
-        email: `tenant2.${req.userData._id}@example.com`,
-        phone: "+1 234-567-8901",
-        property: "Property B",
-        leaseStart: "2024-02-01",
-        leaseEnd: "2025-01-31",
-        status: "Active",
-        rent: 1800,
-        landlordId: req.userData._id
-      }
-    ];
+    console.log("Fetching current tenants for landlord:", req.userData._id);
 
-    res.json(tenants);
+    // Get all completed property requests for this landlord
+    const completedRequests = await PropertyRequest.find({
+      landlord: req.userData._id,
+      status: "Completed"
+    })
+    .populate({
+      path: 'tenant',
+      select: 'name email phone lease propertyRented'
+    })
+    .populate({
+      path: 'property',
+      select: 'title location address rent type bedrooms bathrooms'
+    })
+    .sort({ assignedAt: -1 });
+
+    console.log(`Found ${completedRequests.length} completed requests`);
+    console.log("Completed requests:", completedRequests.map(r => ({
+      id: r._id,
+      tenant: r.tenant?.name,
+      property: r.property?.title,
+      status: r.status
+    })));
+
+    // Transform the data to match the expected tenant format
+    const tenants = completedRequests.map(request => ({
+      _id: request.tenant._id,
+      name: request.tenant.name,
+      email: request.tenant.email,
+      phone: request.tenant.phone || "Not provided",
+      property: {
+        _id: request.property._id,
+        title: request.property.title,
+        location: request.property.location,
+        address: request.property.address,
+        type: request.property.type,
+        bedrooms: request.property.bedrooms,
+        bathrooms: request.property.bathrooms
+      },
+      lease: {
+        startDate: request.leaseStartDate,
+        endDate: request.leaseEndDate,
+        status: "Active", // All completed requests are active
+        rentAmount: request.rentAmount,
+        securityDeposit: request.securityDeposit
+      },
+      assignedAt: request.assignedAt,
+      requestId: request._id
+    }));
+
+    console.log(`Returning ${tenants.length} current tenants`);
+    res.json({ tenants });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error fetching current tenants:", error);
+    res.status(500).json({ 
+      error: "Failed to fetch current tenants",
+      message: error.message 
+    });
   }
 });
 

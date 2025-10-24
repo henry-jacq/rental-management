@@ -86,7 +86,9 @@ const TenantsPage = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setRequests(data.requests || []);
+        // Filter out completed requests - they should only appear in Current Tenants tab
+        const activeRequests = (data.requests || []).filter(request => request.status !== 'Completed');
+        setRequests(activeRequests);
       } else {
         console.error('Failed to fetch property requests');
       }
@@ -100,7 +102,7 @@ const TenantsPage = () => {
   const fetchCurrentTenants = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/properties/tenants', {
+      const response = await fetch('http://localhost:5000/api/tenants', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -109,7 +111,10 @@ const TenantsPage = () => {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('Current tenants response:', data); // Debug log
         setCurrentTenants(data.tenants || []);
+      } else {
+        console.error('Failed to fetch current tenants:', response.status);
       }
     } catch (error) {
       console.error('Error fetching current tenants:', error);
@@ -235,12 +240,21 @@ const TenantsPage = () => {
   };
 
   const handleCompleteAssignment = async () => {
-    if (!responseData.leaseStartDate || !responseData.leaseEndDate || !responseData.rentAmount) {
-      alert('Please fill in all required fields');
+    const propertyRentalType = selectedRequest?.property?.rentalType || 'Rental';
+    const requiresLeaseDate = propertyRentalType === 'Lease' || propertyRentalType === 'Both';
+
+    // Validate required fields based on property type
+    if (!responseData.rentAmount) {
+      alert('Please fill in the monthly rent amount');
       return;
     }
 
-    if (new Date(responseData.leaseStartDate) >= new Date(responseData.leaseEndDate)) {
+    if (requiresLeaseDate && (!responseData.leaseStartDate || !responseData.leaseEndDate)) {
+      alert('Please fill in lease start and end dates for this property type');
+      return;
+    }
+
+    if (requiresLeaseDate && new Date(responseData.leaseStartDate) >= new Date(responseData.leaseEndDate)) {
       alert('Lease end date must be after start date');
       return;
     }
@@ -254,8 +268,8 @@ const TenantsPage = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          leaseStartDate: responseData.leaseStartDate,
-          leaseEndDate: responseData.leaseEndDate,
+          leaseStartDate: requiresLeaseDate ? responseData.leaseStartDate : null,
+          leaseEndDate: requiresLeaseDate ? responseData.leaseEndDate : null,
           rentAmount: parseFloat(responseData.rentAmount),
           securityDeposit: parseFloat(responseData.securityDeposit)
         })
@@ -337,18 +351,7 @@ const TenantsPage = () => {
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Pending Requests
-              </Typography>
-              <Typography variant="h4">
-                {requests.filter(r => r.status === "Pending").length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+       
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
@@ -365,22 +368,10 @@ const TenantsPage = () => {
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                Agreements Sent
+                In Progress
               </Typography>
               <Typography variant="h4">
-                {requests.filter(r => r.status === "Agreement_Sent").length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Completed
-              </Typography>
-              <Typography variant="h4">
-                {requests.filter(r => r.status === "Completed").length}
+                {requests.filter(r => ["Pending", "Approved", "Agreement_Sent", "Agreement_Accepted"].includes(r.status)).length}
               </Typography>
             </CardContent>
           </Card>
@@ -696,26 +687,42 @@ const TenantsPage = () => {
               </Alert>
               
               <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    label="Lease Start Date"
-                    value={responseData.leaseStartDate}
-                    onChange={(e) => setResponseData({ ...responseData, leaseStartDate: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                  />
+                {/* Show lease dates only for Lease and Both property types */}
+                {(selectedRequest.property?.rentalType === 'Lease' || selectedRequest.property?.rentalType === 'Both') && (
+                  <>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="date"
+                        label="Lease Start Date"
+                        value={responseData.leaseStartDate}
+                        onChange={(e) => setResponseData({ ...responseData, leaseStartDate: e.target.value })}
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="date"
+                        label="Lease End Date"
+                        value={responseData.leaseEndDate}
+                        onChange={(e) => setResponseData({ ...responseData, leaseEndDate: e.target.value })}
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                  </>
+                )}
+                
+                {/* Show rental type info for clarity */}
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ mb: 1 }}>
+                    Property Type: <strong>{selectedRequest.property?.rentalType || 'Rental'}</strong>
+                    {selectedRequest.property?.rentalType === 'Rental' && ' (No lease dates required for rental properties)'}
+                    {selectedRequest.property?.rentalType === 'Lease' && ' (Lease dates are required)'}
+                    {selectedRequest.property?.rentalType === 'Both' && ' (Lease dates are required since this property supports lease)'}
+                  </Alert>
                 </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    label="Lease End Date"
-                    value={responseData.leaseEndDate}
-                    onChange={(e) => setResponseData({ ...responseData, leaseEndDate: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
+
                 <Grid item xs={6}>
                   <TextField
                     fullWidth

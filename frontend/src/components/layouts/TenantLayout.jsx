@@ -9,7 +9,6 @@ const TenantLayout = ({ children }) => {
     <>
       <Tooltip title="Notifications">
         <IconButton color="inherit" size="small">
-          <NotificationsIcon />
         </IconButton>
       </Tooltip>
       <ProfileDropdown userRole="tenant" />

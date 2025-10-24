@@ -7,20 +7,19 @@ import {
   Card,
   CardContent,
   Avatar,
-  Chip,
+  CircularProgress,
 } from "@mui/material";
 import {
   Home as HomeIcon,
   People as PeopleIcon,
   AttachMoney as AttachMoneyIcon,
-  TrendingUp as TrendingUpIcon,
   Description as DescriptionIcon,
 } from "@mui/icons-material";
 import { useUser } from "../../contexts/UserContext";
 
 const DashboardPage = () => {
-  const { user } = useUser();
-  const [loading, setLoading] = useState(true);
+  const { user, loading: userLoading } = useUser();
+
   const [stats, setStats] = useState({ 
     totalProperties: 0, 
     activeTenants: 0, 
@@ -33,7 +32,7 @@ const DashboardPage = () => {
     draft: 0,
     expired: 0
   });
-  const [recentActivity, setRecentActivity] = useState([]);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,7 +45,7 @@ const DashboardPage = () => {
         });
         
         if (dashboardRes.data?.stats) setStats(dashboardRes.data.stats);
-        if (dashboardRes.data?.recentActivity) setRecentActivity(dashboardRes.data.recentActivity);
+
 
         // Fetch agreements statistics
         const agreementsRes = await axios.get("http://localhost:5000/api/landlord/agreements/stats/summary", {
@@ -60,8 +59,6 @@ const DashboardPage = () => {
       } catch (err) {
         console.error("Error fetching data:", err);
         // Keep existing user data from context if API fails
-      } finally {
-        setLoading(false);
       }
     };
     fetchData();
@@ -92,6 +89,24 @@ const DashboardPage = () => {
     </Card>
   );
 
+  // Show loading while UserContext is loading
+  if (userLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Redirect if no user data
+  if (!user) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <Typography>Please log in to access the dashboard.</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       {/* Header */}
@@ -121,7 +136,7 @@ const DashboardPage = () => {
             icon={<HomeIcon />}
             title="Total Properties"
             value={stats.totalProperties}
-            subtitle="2 new this month"
+            // subtitle="2 new this month"
             color="primary"
           />
         </Grid>
@@ -130,7 +145,7 @@ const DashboardPage = () => {
             icon={<PeopleIcon />}
             title="Active Tenants"
             value={stats.activeTenants}
-            subtitle="5 new this month"
+            // subtitle="5 new this month"
             color="secondary"
           />
         </Grid>
@@ -139,135 +154,13 @@ const DashboardPage = () => {
             icon={<AttachMoneyIcon />}
             title="Monthly Revenue"
             value={`₹${stats.monthlyRevenue?.toLocaleString()}`}
-            subtitle="+12% from last month"
+            // subtitle="+12% from last month"
             color="warning"
           />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
-          <StatCard
-            icon={<DescriptionIcon />}
-            title="Agreements"
-            value={agreementStats.total}
-            subtitle={`${agreementStats.active} active, ${agreementStats.draft} draft`}
-            color="info"
-          />
-        </Grid>
       </Grid>
 
-      {/* Recent Activity */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} lg={8}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 500, mb: 3 }}>
-                Recent Activity
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {recentActivity.map((activity, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      p: 2,
-                      backgroundColor: "background.default",
-                      borderRadius: 1,
-                      border: "1px solid",
-                      borderColor: "divider",
-                    }}
-                  >
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                        <Chip
-                          label={activity.type}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontSize: "0.75rem" }}
-                        />
-                        <Typography variant="body2" color="text.secondary">
-                          {activity.time}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body1">
-                        {activity.description}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
 
-        <Grid item xs={12} lg={4}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 500, mb: 3 }}>
-                Quick Actions
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Box
-                  sx={{
-                    p: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 1,
-                    cursor: "pointer",
-                    "&:hover": {
-                      backgroundColor: "action.hover",
-                    },
-                  }}
-                >
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                    Add New Property
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    List a new rental property
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    p: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 1,
-                    cursor: "pointer",
-                    "&:hover": {
-                      backgroundColor: "action.hover",
-                    },
-                  }}
-                >
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                    Review Applications
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    3 pending applications
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    p: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 1,
-                    cursor: "pointer",
-                    "&:hover": {
-                      backgroundColor: "action.hover",
-                    },
-                  }}
-                >
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                    Generate Report
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Monthly financial summary
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
     </Box>
   );
 };

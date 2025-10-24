@@ -10,7 +10,7 @@ export const useUser = () => {
   return context;
 };
 
-// Helper function to decode JWT token
+//decode JWT token
 const decodeToken = (token) => {
   try {
     const base64Url = token.split('.')[1];
@@ -108,8 +108,31 @@ export const UserProvider = ({ children }) => {
     localStorage.removeItem("token");
   };
 
+  const reloadUser = async () => {
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const response = await fetch("http://localhost:5000/api/dashboard/profile", {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const profileData = await response.json();
+          setUser(profileData);
+        }
+      } catch (error) {
+        console.error("Error reloading user:", error);
+      }
+    }
+    setLoading(false);
+  };
+
   return (
-    <UserContext.Provider value={{ user, loading, updateUser, clearUser }}>
+    <UserContext.Provider value={{ user, loading, updateUser, clearUser, reloadUser }}>
       {children}
     </UserContext.Provider>
   );

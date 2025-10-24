@@ -21,8 +21,7 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
     console.log("Fetching agreements for landlord:", req.userData._id);
     
     const { search, status, property, tenant, page = 1, limit = 20, sort = 'createdAt' } = req.query;
-    
-    // Build filters object
+
     const filters = {};
     if (search) filters.search = search;
     if (status) filters.status = status;
@@ -30,14 +29,11 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
     if (tenant) filters.tenant = tenant;
     
     console.log("Applied filters:", filters);
-    
-    // Calculate pagination
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
-    // Get agreements using the static method
     let query = Agreement.findByLandlord(req.userData._id, filters);
     
-    // Apply sorting
     const sortOptions = {};
     switch (sort) {
       case 'title':
@@ -328,26 +324,22 @@ router.put("/:id",
         documentsToRemoveArray.forEach(docId => {
           const document = agreement.documents.id(docId);
           if (document) {
-            // Delete physical file
             try {
               deleteFile(document.path);
             } catch (error) {
               console.error("Error deleting file:", error);
             }
-            // Remove from array
             document.remove();
           }
         });
       }
 
-      // Add new documents
       if (req.uploadedDocuments && req.uploadedDocuments.length > 0) {
         agreement.documents.push(...req.uploadedDocuments);
       }
 
       const updatedAgreement = await agreement.save();
       
-      // Populate references for response
       await updatedAgreement.populate('property', 'title location address');
       await updatedAgreement.populate('tenant', 'name email phone');
 
@@ -365,7 +357,6 @@ router.put("/:id",
   }
 );
 
-// Delete an agreement
 router.delete("/:id", requireRole(["landlord"]), async (req, res) => {
   try {
     const agreement = await Agreement.findOne({
@@ -380,7 +371,6 @@ router.delete("/:id", requireRole(["landlord"]), async (req, res) => {
       });
     }
 
-    // Delete all associated files
     if (agreement.documents && agreement.documents.length > 0) {
       agreement.documents.forEach(document => {
         if (document.path && fileExists(document.path)) {
@@ -404,7 +394,7 @@ router.delete("/:id", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Download a specific document from an agreement
+
 router.get("/:id/download/:documentId", requireRole(["landlord"]), async (req, res) => {
   try {
     const agreement = await Agreement.findOne({

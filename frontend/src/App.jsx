@@ -20,21 +20,14 @@ const LandlordProfilePage = lazy(() => import("./pages/landlord/ProfilePage"));
 const PropertiesPage = lazy(() => import("./pages/landlord/PropertiesPage"));
 const TenantsPage = lazy(() => import("./pages/landlord/TenantsPage"));
 const AgreementsPage = lazy(() => import("./pages/landlord/AgreementsPage"));
-const PaymentsPage = lazy(() => import("./pages/landlord/PaymentsPage"));
-const LandlordMaintenancePage = lazy(() => import("./pages/landlord/MaintenancePage"));
 const ReportsPage = lazy(() => import("./pages/landlord/ReportsPage"));
-const LandlordSettingsPage = lazy(() => import("./pages/landlord/SettingsPage"));
 
 // Lazy load tenant pages
 const TenantDashboard = lazy(() => import("./pages/tenant/DashboardPage"));
 const TenantProfilePage = lazy(() => import("./pages/tenant/ProfilePage"));
 const TenantPropertiesPage = lazy(() => import("./pages/tenant/PropertiesPage"));
 const TenantRequestsPage = lazy(() => import("./pages/tenant/RequestsPage"));
-const TenantPaymentsPage = lazy(() => import("./pages/tenant/PaymentsPage"));
-const MaintenancePage = lazy(() => import("./pages/tenant/MaintenancePage"));
-const DocumentsPage = lazy(() => import("./pages/tenant/DocumentsPage"));
-const NotificationsPage = lazy(() => import("./pages/tenant/NotificationsPage"));
-const TenantSettingsPage = lazy(() => import("./pages/tenant/SettingsPage"));
+
 
 const theme = createTheme({
   palette: {
@@ -518,24 +511,6 @@ function App() {
                 </ProtectedRoute>
               </Suspense>
             } />
-            <Route path="/landlord/payments" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ProtectedRoute role="landlord">
-                  <LandlordLayout>
-                    <PaymentsPage />
-                  </LandlordLayout>
-                </ProtectedRoute>
-              </Suspense>
-            } />
-            <Route path="/landlord/maintenance" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ProtectedRoute role="landlord">
-                  <LandlordLayout>
-                    <LandlordMaintenancePage />
-                  </LandlordLayout>
-                </ProtectedRoute>
-              </Suspense>
-            } />
             <Route path="/landlord/reports" element={
               <Suspense fallback={<LoadingFallback />}>
                 <ProtectedRoute role="landlord">
@@ -545,15 +520,7 @@ function App() {
                 </ProtectedRoute>
               </Suspense>
             } />
-            <Route path="/landlord/settings" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ProtectedRoute role="landlord">
-                  <LandlordLayout>
-                    <LandlordSettingsPage />
-                  </LandlordLayout>
-                </ProtectedRoute>
-              </Suspense>
-            } />
+
 
             {/* Tenant Routes */}
             <Route path="/tenant/profile" element={
@@ -583,51 +550,7 @@ function App() {
                 </ProtectedRoute>
               </Suspense>
             } />
-            <Route path="/tenant/payments" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ProtectedRoute role="tenant">
-                  <TenantLayout>
-                    <TenantPaymentsPage />
-                  </TenantLayout>
-                </ProtectedRoute>
-              </Suspense>
-            } />
-            <Route path="/tenant/maintenance" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ProtectedRoute role="tenant">
-                  <TenantLayout>
-                    <MaintenancePage />
-                  </TenantLayout>
-                </ProtectedRoute>
-              </Suspense>
-            } />
-            <Route path="/tenant/documents" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ProtectedRoute role="tenant">
-                  <TenantLayout>
-                    <DocumentsPage />
-                  </TenantLayout>
-                </ProtectedRoute>
-              </Suspense>
-            } />
-            <Route path="/tenant/notifications" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ProtectedRoute role="tenant">
-                  <TenantLayout>
-                    <NotificationsPage />
-                  </TenantLayout>
-                </ProtectedRoute>
-              </Suspense>
-            } />
-            <Route path="/tenant/settings" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ProtectedRoute role="tenant">
-                  <TenantLayout>
-                    <TenantSettingsPage />
-                  </TenantLayout>
-                </ProtectedRoute>
-              </Suspense>
-            } />
+
             </Routes>
           </Suspense>
         </Router>

@@ -57,14 +57,14 @@ const ProfilePage = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const profileData = await response.json();
         setProfile(prev => ({
           ...prev,
           company: profileData.company || "Not specified",
-          address: profileData.address ? 
-            `${profileData.address.line1 || ''}, ${profileData.address.city || ''}, ${profileData.address.state || ''} ${profileData.address.postalCode || ''}`.trim() : 
+          address: profileData.address ?
+            `${profileData.address.line1 || ''}, ${profileData.address.city || ''}, ${profileData.address.state || ''} ${profileData.address.postalCode || ''}`.trim() :
             "Address not available",
           joinDate: profileData.joinDate || "Not available"
         }));
@@ -127,11 +127,11 @@ const ProfilePage = () => {
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent sx={{ p: 3, textAlign: "center" }}>
-              <Avatar 
-                sx={{ 
-                  width: 120, 
-                  height: 120, 
-                  bgcolor: "primary.main", 
+              <Avatar
+                sx={{
+                  width: 120,
+                  height: 120,
+                  bgcolor: "primary.main",
                   fontSize: "3rem",
                   mx: "auto",
                   mb: 2
@@ -145,9 +145,9 @@ const ProfilePage = () => {
               <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
                 {user?.email}
               </Typography>
-              <Chip 
-                label="Landlord" 
-                color="primary" 
+              <Chip
+                label="Landlord"
+                color="primary"
                 sx={{ mb: 2 }}
               />
               <Divider sx={{ my: 2 }} />
@@ -160,7 +160,7 @@ const ProfilePage = () => {
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
                 <PersonIcon fontSize="small" color="action" />
                 <Typography variant="body2" color="text.secondary">
-                  Member since {profile.joinDate}
+                  {/* Member since {profile.joinDate} */}
                 </Typography>
               </Box>
             </CardContent>

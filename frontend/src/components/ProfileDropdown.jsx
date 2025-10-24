@@ -13,7 +13,6 @@ import {
 } from "@mui/material";
 import {
     Person as PersonIcon,
-    Settings as SettingsIcon,
     Logout as LogoutIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
@@ -48,11 +47,7 @@ const ProfileDropdown = ({ userRole }) => {
         handleClose();
     };
 
-    const handleSettings = () => {
-        const settingsPath = userRole === "landlord" ? "/landlord/settings" : "/tenant/settings";
-        navigate(settingsPath);
-        handleClose();
-    };
+
 
     const handleLogout = () => {
         clearUser();
@@ -166,12 +161,7 @@ const ProfileDropdown = ({ userRole }) => {
                     </ListItemIcon>
                     <ListItemText>Profile</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={handleSettings}>
-                    <ListItemIcon>
-                        <SettingsIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Settings</ListItemText>
-                </MenuItem>
+
                 <Divider />
                 <MenuItem onClick={handleLogout}>
                     <ListItemIcon>
