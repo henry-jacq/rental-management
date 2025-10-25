@@ -302,10 +302,6 @@ const PropertiesPage = () => {
           <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
             Manage your rental properties and track their status.
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LockIcon fontSize="small" />
-            Only available properties can be edited or deleted
-          </Typography>
         </Box>
         <Button
           variant="contained"
@@ -392,16 +388,13 @@ const PropertiesPage = () => {
                         Type: {property.rentalType || "Rental"}
                       </Typography>
                     </Box>
-                    <Chip
-                      label={property.status}
-                      color={
-                        property.status === "Available" ? "success" :
-                          property.status === "Rented" ? "primary" : "warning"
-                      }
-                      size="small"
-                      variant={property.status === "Available" ? "filled" : "outlined"}
-                      icon={property.status !== "Available" ? <LockIcon fontSize="small" /> : undefined}
-                    />
+                      <Button
+                        size="small"
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => handleViewOpen(property)}
+                      >
+                        View
+                      </Button>
                   </Box>
 
                   {property.currentTenant && (
@@ -437,21 +430,7 @@ const PropertiesPage = () => {
                       </Button>
                     </Box>
                   ) : (
-                    <>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <LockIcon fontSize="small" color="action" />
-                        <Typography variant="body2" color="text.secondary">
-                          {property.status === "Rented" ? "Currently rented" : "Not available"}
-                        </Typography>
-                      </Box>
-                      <Button
-                        size="small"
-                        startIcon={<VisibilityIcon />}
-                        onClick={() => handleViewOpen(property)}
-                      >
-                        View
-                      </Button>
-                    </>
+                    <></>
                   )}
                 </CardActions>
               </Card>

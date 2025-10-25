@@ -46,6 +46,8 @@ import {
   Assignment as AssignmentIcon,
   Visibility as VisibilityIcon,
   AccessTime as AccessTimeIcon,
+  CalendarToday as CalendarIcon,
+  AttachMoney as MoneyIcon,
 } from "@mui/icons-material";
 
 const TenantsPage = () => {
@@ -241,7 +243,6 @@ const TenantsPage = () => {
 
   const handleCompleteAssignment = async () => {
     const propertyRentalType = selectedRequest?.property?.rentalType || 'Rental';
-    const requiresLeaseDate = propertyRentalType === 'Lease' || propertyRentalType === 'Both';
 
     // Validate required fields based on property type
     if (!responseData.rentAmount) {
@@ -249,15 +250,43 @@ const TenantsPage = () => {
       return;
     }
 
-    if (requiresLeaseDate && (!responseData.leaseStartDate || !responseData.leaseEndDate)) {
-      alert('Please fill in lease start and end dates for this property type');
-      return;
+    // Validation for Lease properties - lease dates are mandatory
+    if (propertyRentalType === 'Lease') {
+      if (!responseData.leaseStartDate || !responseData.leaseEndDate) {
+        alert('Lease start and end dates are required for lease properties');
+        return;
+      }
+      
+      if (new Date(responseData.leaseStartDate) >= new Date(responseData.leaseEndDate)) {
+        alert('Lease end date must be after start date');
+        return;
+      }
     }
 
-    if (requiresLeaseDate && new Date(responseData.leaseStartDate) >= new Date(responseData.leaseEndDate)) {
-      alert('Lease end date must be after start date');
-      return;
+    // Validation for Both properties - if lease dates are provided, both must be filled
+    if (propertyRentalType === 'Both') {
+      const hasStartDate = responseData.leaseStartDate;
+      const hasEndDate = responseData.leaseEndDate;
+      
+      if (hasStartDate && !hasEndDate) {
+        alert('Please provide lease end date or leave both dates empty for monthly rental');
+        return;
+      }
+      
+      if (!hasStartDate && hasEndDate) {
+        alert('Please provide lease start date or leave both dates empty for monthly rental');
+        return;
+      }
+      
+      if (hasStartDate && hasEndDate && new Date(responseData.leaseStartDate) >= new Date(responseData.leaseEndDate)) {
+        alert('Lease end date must be after start date');
+        return;
+      }
     }
+
+    // Determine if this is a lease assignment or rental assignment
+    const isLeaseAssignment = propertyRentalType === 'Lease' || 
+      (propertyRentalType === 'Both' && responseData.leaseStartDate && responseData.leaseEndDate);
 
     try {
       const token = localStorage.getItem('token');
@@ -268,10 +297,11 @@ const TenantsPage = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          leaseStartDate: requiresLeaseDate ? responseData.leaseStartDate : null,
-          leaseEndDate: requiresLeaseDate ? responseData.leaseEndDate : null,
+          leaseStartDate: isLeaseAssignment ? responseData.leaseStartDate : null,
+          leaseEndDate: isLeaseAssignment ? responseData.leaseEndDate : null,
           rentAmount: parseFloat(responseData.rentAmount),
-          securityDeposit: parseFloat(responseData.securityDeposit)
+          securityDeposit: parseFloat(responseData.securityDeposit),
+          assignmentType: isLeaseAssignment ? 'lease' : 'rental' // Add assignment type for backend processing
         })
       });
 
@@ -279,7 +309,9 @@ const TenantsPage = () => {
         await fetchPropertyRequests();
         await fetchCurrentTenants();
         handleCloseDialog();
-        alert('Property assigned successfully!');
+        
+        const assignmentTypeText = isLeaseAssignment ? 'lease' : 'rental';
+        alert(`Property assigned successfully as ${assignmentTypeText}!`);
       } else {
         const errorData = await response.json();
         alert(`Failed to complete assignment: ${errorData.error || 'Unknown error'}`);
@@ -686,10 +718,71 @@ const TenantsPage = () => {
                 Agreement accepted! Complete the property assignment for {selectedRequest.tenant?.name}
               </Alert>
               
+              {/* Property Type Information */}
+              <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <HomeIcon sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="h6">
+                    {selectedRequest.property?.title}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  {selectedRequest.property?.location}
+                </Typography>
+                <Chip 
+                  label={`${selectedRequest.property?.rentalType || 'Rental'} Property`}
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                />
+              </Box>
+              
               <Grid container spacing={2}>
-                {/* Show lease dates only for Lease and Both property types */}
-                {(selectedRequest.property?.rentalType === 'Lease' || selectedRequest.property?.rentalType === 'Both') && (
+                {/* Rental Properties - Show rental fields */}
+                {selectedRequest.property?.rentalType === 'Rental' && (
                   <>
+                    <Grid item xs={12}>
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        <strong>Rental Property:</strong> This is a monthly rental property. No fixed lease period required.
+                      </Alert>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Monthly Rent (₹)"
+                        value={responseData.rentAmount}
+                        onChange={(e) => setResponseData({ ...responseData, rentAmount: e.target.value })}
+                        required
+                        InputProps={{
+                          startAdornment: <MoneyIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Security Deposit (₹)"
+                        value={responseData.securityDeposit}
+                        onChange={(e) => setResponseData({ ...responseData, securityDeposit: e.target.value })}
+                        helperText="Typically 1-3 months rent"
+                        InputProps={{
+                          startAdornment: <MoneyIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
+                      />
+                    </Grid>
+                  </>
+                )}
+
+                {/* Lease Properties - Show lease fields */}
+                {selectedRequest.property?.rentalType === 'Lease' && (
+                  <>
+                    <Grid item xs={12}>
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        <strong>Lease Property:</strong> This property requires a fixed lease period with start and end dates.
+                      </Alert>
+                    </Grid>
                     <Grid item xs={6}>
                       <TextField
                         fullWidth
@@ -698,6 +791,10 @@ const TenantsPage = () => {
                         value={responseData.leaseStartDate}
                         onChange={(e) => setResponseData({ ...responseData, leaseStartDate: e.target.value })}
                         InputLabelProps={{ shrink: true }}
+                        required
+                        InputProps={{
+                          startAdornment: <CalendarIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
                       />
                     </Grid>
                     <Grid item xs={6}>
@@ -708,39 +805,142 @@ const TenantsPage = () => {
                         value={responseData.leaseEndDate}
                         onChange={(e) => setResponseData({ ...responseData, leaseEndDate: e.target.value })}
                         InputLabelProps={{ shrink: true }}
+                        required
+                        InputProps={{
+                          startAdornment: <CalendarIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Monthly Rent (₹)"
+                        value={responseData.rentAmount}
+                        onChange={(e) => setResponseData({ ...responseData, rentAmount: e.target.value })}
+                        required
+                        InputProps={{
+                          startAdornment: <MoneyIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Security Deposit (₹)"
+                        value={responseData.securityDeposit}
+                        onChange={(e) => setResponseData({ ...responseData, securityDeposit: e.target.value })}
+                        helperText="Typically 1-3 months rent"
+                        InputProps={{
+                          startAdornment: <MoneyIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
                       />
                     </Grid>
                   </>
                 )}
-                
-                {/* Show rental type info for clarity */}
-                <Grid item xs={12}>
-                  <Alert severity="info" sx={{ mb: 1 }}>
-                    Property Type: <strong>{selectedRequest.property?.rentalType || 'Rental'}</strong>
-                    {selectedRequest.property?.rentalType === 'Rental' && ' (No lease dates required for rental properties)'}
-                    {selectedRequest.property?.rentalType === 'Lease' && ' (Lease dates are required)'}
-                    {selectedRequest.property?.rentalType === 'Both' && ' (Lease dates are required since this property supports lease)'}
-                  </Alert>
-                </Grid>
 
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Monthly Rent (₹)"
-                    value={responseData.rentAmount}
-                    onChange={(e) => setResponseData({ ...responseData, rentAmount: e.target.value })}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Security Deposit (₹)"
-                    value={responseData.securityDeposit}
-                    onChange={(e) => setResponseData({ ...responseData, securityDeposit: e.target.value })}
-                  />
-                </Grid>
+                {/* Both (Rental + Lease) Properties - Show all fields */}
+                {selectedRequest.property?.rentalType === 'Both' && (
+                  <>
+                    <Grid item xs={12}>
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        <strong>Flexible Property:</strong> This property supports both rental and lease arrangements. 
+                        Please specify lease dates to create a fixed-term lease, or leave them empty for a monthly rental.
+                      </Alert>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="date"
+                        label="Lease Start Date (Optional)"
+                        value={responseData.leaseStartDate}
+                        onChange={(e) => setResponseData({ ...responseData, leaseStartDate: e.target.value })}
+                        InputLabelProps={{ shrink: true }}
+                        helperText="Leave empty for monthly rental"
+                        InputProps={{
+                          startAdornment: <CalendarIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="date"
+                        label="Lease End Date (Optional)"
+                        value={responseData.leaseEndDate}
+                        onChange={(e) => setResponseData({ ...responseData, leaseEndDate: e.target.value })}
+                        InputLabelProps={{ shrink: true }}
+                        helperText="Leave empty for monthly rental"
+                        InputProps={{
+                          startAdornment: <CalendarIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Monthly Rent (₹)"
+                        value={responseData.rentAmount}
+                        onChange={(e) => setResponseData({ ...responseData, rentAmount: e.target.value })}
+                        required
+                        InputProps={{
+                          startAdornment: <MoneyIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Security Deposit (₹)"
+                        value={responseData.securityDeposit}
+                        onChange={(e) => setResponseData({ ...responseData, securityDeposit: e.target.value })}
+                        helperText="Typically 1-3 months rent"
+                        InputProps={{
+                          startAdornment: <MoneyIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
+                      />
+                    </Grid>
+                  </>
+                )}
+
+                {/* Default case - if rentalType is not set */}
+                {!selectedRequest.property?.rentalType && (
+                  <>
+                    <Grid item xs={12}>
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        <strong>Property Type Not Specified:</strong> Defaulting to rental property settings.
+                      </Alert>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Monthly Rent (₹)"
+                        value={responseData.rentAmount}
+                        onChange={(e) => setResponseData({ ...responseData, rentAmount: e.target.value })}
+                        required
+                        InputProps={{
+                          startAdornment: <MoneyIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Security Deposit (₹)"
+                        value={responseData.securityDeposit}
+                        onChange={(e) => setResponseData({ ...responseData, securityDeposit: e.target.value })}
+                        InputProps={{
+                          startAdornment: <MoneyIcon sx={{ mr: 1, color: 'action.active' }} />
+                        }}
+                      />
+                    </Grid>
+                  </>
+                )}
               </Grid>
             </Box>
           )}
