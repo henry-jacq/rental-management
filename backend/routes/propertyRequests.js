@@ -370,6 +370,47 @@ router.put("/:id/accept-agreement", requireRole(["tenant"]), async (req, res) =>
   }
 });
 
+// Tenant rejects agreement
+router.put("/:id/reject-agreement", requireRole(["tenant"]), async (req, res) => {
+  try {
+    const { reason } = req.body;
+    
+    const request = await PropertyRequest.findOne({
+      _id: req.params.id,
+      tenant: req.userData._id,
+      status: "Agreement_Sent"
+    });
+
+    if (!request) {
+      return res.status(404).json({ 
+        error: "Request not found or agreement not available" 
+      });
+    }
+
+    // Reject the entire request - set status to Rejected
+    request.status = "Rejected";
+    request.landlordResponse = reason 
+      ? `Tenant rejected the agreement. Reason: ${reason}` 
+      : "Tenant rejected the agreement.";
+    request.responseDate = new Date();
+    
+    await request.save();
+    await request.populate('property', 'title location address rent');
+    await request.populate('landlord', 'name email phone');
+
+    res.json({
+      message: "Agreement rejected. The property request has been closed.",
+      request
+    });
+  } catch (error) {
+    console.error("Error rejecting agreement:", error);
+    res.status(500).json({ 
+      error: "Failed to reject agreement",
+      message: error.message 
+    });
+  }
+});
+
 // Landlord completes assignment (assigns property to tenant)
 router.put("/:id/complete-assignment", requireRole(["landlord"]), async (req, res) => {
   try {

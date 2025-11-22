@@ -50,6 +50,8 @@ const userSchema = new mongoose.Schema(
     phone: { type: String },
     password: { type: String, required: true },
     role: { type: String, enum: ["tenant", "landlord"], required: true },
+    resetOTP: { type: String },
+    resetOTPExpires: { type: Date },
 
  
     address: { type: AddressSchema },
