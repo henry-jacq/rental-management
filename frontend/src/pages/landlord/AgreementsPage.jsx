@@ -255,9 +255,6 @@ const AgreementsPage = () => {
           <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
             Rental Agreements
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage your rental agreements and documents.
-          </Typography>
         </Box>
         <Button
           variant="contained"
@@ -283,7 +280,6 @@ const AgreementsPage = () => {
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                placeholder="Search agreements..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -338,9 +334,7 @@ const AgreementsPage = () => {
             {agreements.length === 0 ? "No agreements created yet" : "No agreements match your filters"}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            {/* {agreements.length === 0 
-              ? "Start by creating your first rental agreement to manage tenant relationships."
-              : "Try adjusting your search criteria or filters to find agreements."} */}
+            {/* No agreements found*/}
           </Typography>
           {agreements.length === 0 && (
             <Button

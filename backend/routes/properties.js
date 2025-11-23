@@ -8,7 +8,6 @@ const router = express.Router();
 // Get available properties for tenants
 router.get("/available", requireRole(["tenant"]), async (req, res) => {
   try {
-    console.log("Fetching available properties for tenant:", req.userData._id);
     const { search, minPrice, maxPrice, propertyType, location } = req.query;
 
     // Build query for available properties
@@ -45,13 +44,10 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
     }
 
     // Fetch properties from database
-    console.log("Query filters:", query);
     let properties = await Property.find(query)
       .populate('landlord', 'name email phone')
       .sort({ createdAt: -1 })
       .lean();
-    
-    console.log("Found properties in database:", properties.length);
 
     // Transform data for frontend compatibility
     properties = properties.map(property => ({
@@ -82,7 +78,6 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
 
     // If no properties found in database, return mock data for demo
     if (properties.length === 0) {
-      console.log("No properties found in database, returning mock data");
       properties = [
         {
           id: 1,
@@ -143,7 +138,6 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
       ];
     }
 
-    console.log("Returning properties:", properties.length);
     res.json({
       properties,
       total: properties.length,

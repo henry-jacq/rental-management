@@ -1,4 +1,4 @@
-import React, { useState, memo } from "react";
+import { useState, memo } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import Box from "@mui/material/Box";
@@ -18,6 +18,7 @@ const Register = memo(() => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("tenant");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,38 @@ const Register = memo(() => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+
+    // Validation
+    if (!name || !name.trim()) {
+      setMessage("Name is required");
+      setLoading(false);
+      return;
+    }
+    if (name.trim().length < 2) {
+      setMessage("Name must be at least 2 characters");
+      setLoading(false);
+      return;
+    }
+    if (!email || !email.trim()) {
+      setMessage("Email is required");
+      setLoading(false);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMessage("Invalid email format");
+      setLoading(false);
+      return;
+    }
+    if (!password) {
+      setMessage("Password is required");
+      setLoading(false);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setMessage("Passwords do not match");
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await axios.post("http://localhost:5000/api/auth/register", { name, email, password, role });
@@ -102,6 +135,17 @@ const Register = memo(() => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
+                  variant="outlined"
+                />
+              </Grid>
+              <Grid item xs={12} sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Confirm Password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   variant="outlined"
                 />

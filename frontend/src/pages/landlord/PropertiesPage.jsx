@@ -24,6 +24,7 @@ import {
   InputAdornment,
   Divider,
 } from "@mui/material";
+
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -64,6 +65,7 @@ const PropertiesPage = () => {
   });
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreview, setImagePreview] = useState([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   // Fetch properties from API
   useEffect(() => {
@@ -176,6 +178,7 @@ const PropertiesPage = () => {
     if (selectedImages.length === 0) return;
 
     try {
+      setUploadingImages(true);
       const token = localStorage.getItem("token");
       const formDataUpload = new FormData();
 
@@ -196,12 +199,21 @@ const PropertiesPage = () => {
     } catch (error) {
       console.error("Error uploading images:", error);
       throw new Error("Failed to upload images");
+    } finally {
+      setUploadingImages(false);
     }
   };
 
   const handleSubmit = async () => {
+    // Validate required fields
+    if (!formData.title || !formData.description || !formData.rent || !formData.type || !formData.location) {
+      setError("Please fill in all required fields: Title, Description, Rent, Type, and Location");
+      return;
+    }
+
     try {
       setSubmitting(true);
+      setError("");
       const token = localStorage.getItem("token");
 
       if (editingProperty) {
@@ -233,10 +245,10 @@ const PropertiesPage = () => {
       // Refresh properties list
       await fetchProperties();
       handleClose();
-      setError("");
     } catch (error) {
       console.error("Error saving property:", error);
-      setError("Failed to save property. Please check all required fields.");
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || "Failed to save property. Please check all required fields.";
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -302,10 +314,6 @@ const PropertiesPage = () => {
           <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
             Manage your rental properties and track their status.
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LockIcon fontSize="small" />
-            Only available properties can be edited or deleted
-          </Typography>
         </Box>
         <Button
           variant="contained"
@@ -339,19 +347,58 @@ const PropertiesPage = () => {
                   position: 'relative'
                 }}
               >
-                {property.images && property.images.length > 0 && (
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={`http://localhost:5000${property.images[0]}`}
-                    alt={property.title}
-                    sx={{ objectFit: "cover" }}
-                  />
+                {property.images && property.images.length > 0 ? (
+                  <Box sx={{ position: 'relative' }}>
+                    <CardMedia
+                      component="img"
+                      height="200"
+                      image={`http://localhost:5000${property.images[0]}`}
+                      alt={property.title}
+                      sx={{ objectFit: "cover" }}
+                    />
+                    <Chip
+                      label={property.status}
+                      color={property.status === "Available" ? "success" : property.status === "Rented" ? "primary" : "default"}
+                      size="small"
+                      sx={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        fontWeight: 600
+                      }}
+                    />
+                  </Box>
+                ) : (
+                  <Box
+                    sx={{
+                      height: 200,
+                      bgcolor: 'grey.100',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative'
+                    }}
+                  >
+                    <HomeIcon sx={{ fontSize: 48, color: 'grey.400' }} />
+                    <Chip
+                      label={property.status}
+                      color={property.status === "Available" ? "success" : property.status === "Rented" ? "primary" : "default"}
+                      size="small"
+                      sx={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        fontWeight: 600
+                      }}
+                    />
+                  </Box>
                 )}
                 <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                    {property.title}
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, flex: 1 }}>
+                      {property.title}
+                    </Typography>
+                  </Box>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                     <LocationIcon fontSize="small" color="action" />
                     <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
@@ -359,26 +406,6 @@ const PropertiesPage = () => {
                     </Typography>
                   </Box>
 
-                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <BedIcon fontSize="small" color="action" />
-                      <Typography variant="body2" sx={{ ml: 0.5 }}>
-                        {property.bedrooms}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <BathtubIcon fontSize="small" color="action" />
-                      <Typography variant="body2" sx={{ ml: 0.5 }}>
-                        {property.bathrooms}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <SquareFootIcon fontSize="small" color="action" />
-                      <Typography variant="body2" sx={{ ml: 0.5 }}>
-                        {property.area} sqft
-                      </Typography>
-                    </Box>
-                  </Box>
 
                   <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                     <Box>
@@ -391,68 +418,53 @@ const PropertiesPage = () => {
                       <Typography variant="body2" color="text.secondary">
                         Type: {property.rentalType || "Rental"}
                       </Typography>
-                    </Box>
-                    <Chip
-                      label={property.status}
-                      color={
-                        property.status === "Available" ? "success" :
-                          property.status === "Rented" ? "primary" : "warning"
-                      }
-                      size="small"
-                      variant={property.status === "Available" ? "filled" : "outlined"}
-                      icon={property.status !== "Available" ? <LockIcon fontSize="small" /> : undefined}
-                    />
-                  </Box>
-
-                  {property.currentTenant && (
-                    <Typography variant="body2" color="text.secondary">
-                      Tenant: {property.currentTenant.name}
-                    </Typography>
-                  )}
-                </CardContent>
-                <CardActions sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-                  {property.status === "Available" ? (
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Button
-                        size="small"
-                        startIcon={<VisibilityIcon />}
-                        onClick={() => handleViewOpen(property)}
-                      >
-                        View
-                      </Button>
-                      <Button
-                        size="small"
-                        startIcon={<EditIcon />}
-                        onClick={() => handleOpen(property)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="small"
-                        color="error"
-                        startIcon={<DeleteIcon />}
-                        onClick={() => handleDelete(property._id)}
-                      >
-                        Delete
-                      </Button>
-                    </Box>
-                  ) : (
-                    <>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <LockIcon fontSize="small" color="action" />
+                      {property.currentTenant && (
                         <Typography variant="body2" color="text.secondary">
-                          {property.status === "Rented" ? "Currently rented" : "Not available"}
+                          Tenant: {property.currentTenant.name}
                         </Typography>
-                      </Box>
-                      <Button
-                        size="small"
-                        startIcon={<VisibilityIcon />}
-                        onClick={() => handleViewOpen(property)}
-                      >
-                        View
-                      </Button>
-                    </>
-                  )}
+                      )}
+                    </Box>
+                  </Box>
+                </CardContent>
+                <CardActions
+                  sx={{
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: '100%' }}>
+                    <Button
+                      size="small"
+                      startIcon={<VisibilityIcon />}
+                      onClick={() => handleViewOpen(property)}
+                      sx={{ flex: 1 }}
+                    >
+                      View
+                    </Button>
+                    {property.status === "Available" && (
+                      <>
+                        <Button
+                          size="small"
+                          startIcon={<EditIcon />}
+                          onClick={() => handleOpen(property)}
+                          sx={{ flex: 1 }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          startIcon={<DeleteIcon />}
+                          onClick={() => handleDelete(property._id)}
+                          sx={{ flex: 1 }}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    )}
+                  </Box>
                 </CardActions>
               </Card>
             </Grid>
@@ -465,7 +477,6 @@ const PropertiesPage = () => {
             No properties created yet
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Start by adding your first rental property to manage tenants and track income.
           </Typography>
           <Button
             variant="contained"
@@ -751,10 +762,14 @@ const PropertiesPage = () => {
           <Button
             onClick={handleSubmit}
             variant="contained"
-            disabled={submitting}
+            disabled={submitting || uploadingImages}
             sx={{ minWidth: 100 }}
           >
-            {submitting ? <CircularProgress size={20} /> : editingProperty ? "Update" : "Add"}
+            {submitting || uploadingImages ? (
+              <CircularProgress size={20} />
+            ) : (
+              editingProperty ? "Update" : "Add"
+            )}
           </Button>
         </DialogActions>
       </Dialog>

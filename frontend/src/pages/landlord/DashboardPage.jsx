@@ -89,7 +89,6 @@ const DashboardPage = () => {
     </Card>
   );
 
-  // Show loading while UserContext is loading
   if (userLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
@@ -98,7 +97,7 @@ const DashboardPage = () => {
     );
   }
 
-  // Redirect if no user data
+
   if (!user) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
@@ -124,9 +123,6 @@ const DashboardPage = () => {
             </Typography>
           </Box>
         </Box>
-        <Typography variant="body1" color="text.secondary">
-          Here's what's happening with your properties today.
-        </Typography>
       </Box>
 
       {/* Stats Grid */}

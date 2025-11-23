@@ -24,6 +24,7 @@ import {
     IconButton,
     Tabs,
     Tab,
+    Alert,
 } from "@mui/material";
 
 import {
@@ -53,6 +54,7 @@ const PropertiesPage = () => {
     const [availableProperties, setAvailableProperties] = useState([]);
     const [filteredProperties, setFilteredProperties] = useState([]);
     const [availableLoading, setAvailableLoading] = useState(true);
+    const [availableError, setAvailableError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [priceRange, setPriceRange] = useState("");
     const [propertyType, setPropertyType] = useState("");
@@ -130,127 +132,23 @@ const PropertiesPage = () => {
 
             console.log("Available properties API response:", response.data);
             setAvailableProperties(response.data.properties || []);
+            setAvailableError("");
         } catch (error) {
             console.error("Error fetching properties:", error);
 
             // Show error message instead of falling back to mock data
+            let errorMsg = "Failed to load properties. Please try again later.";
+            
             if (error.response?.status === 401) {
-                console.error("Authentication failed");
-                // Could redirect to login here
+                errorMsg = "Your session has expired. Please log in again.";
             } else if (error.response?.status === 403) {
-                console.error("Access denied - user might not have tenant role");
-            } else {
-                console.error("API Error:", error.response?.data || error.message);
+                errorMsg = "Access denied. You don't have permission to view properties.";
+            } else if (error.response?.data?.message) {
+                errorMsg = error.response.data.message;
             }
 
-            // Fallback to mock data for demo purposes
-            console.log("Falling back to mock data...");
-            const mockProperties = [
-                {
-                    id: 1,
-                    title: "Modern 2BHK Apartment",
-                    description: "Spacious 2-bedroom apartment with modern amenities in prime location",
-                    rent: 25000,
-                    deposit: 50000,
-                    type: "Apartment",
-                    bedrooms: 2,
-                    bathrooms: 2,
-                    area: 1200,
-                    location: "Koramangala, Bangalore",
-                    address: "123 Main Street, Koramangala, Bangalore - 560034",
-                    amenities: ["Parking", "Gym", "Swimming Pool", "Security", "Power Backup"],
-                    images: [
-                        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400",
-                        "https://images.unsplash.com/photo-1560448075-bb485b067938?w=400"
-                    ],
-                    landlord: {
-                        name: "Rajesh Kumar",
-                        phone: "+91 98765 43210",
-                        email: "rajesh.kumar@example.com",
-                        rating: 4.5
-                    },
-                    available: true,
-                    availableFrom: "2024-12-01"
-                },
-                {
-                    id: 2,
-                    title: "Cozy 1BHK Studio",
-                    description: "Perfect for young professionals, fully furnished studio apartment",
-                    rent: 18000,
-                    deposit: 36000,
-                    type: "Studio",
-                    bedrooms: 1,
-                    bathrooms: 1,
-                    area: 600,
-                    location: "Indiranagar, Bangalore",
-                    address: "456 Park Avenue, Indiranagar, Bangalore - 560038",
-                    amenities: ["Furnished", "WiFi", "AC", "Security", "Parking"],
-                    images: [
-                        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
-                        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400"
-                    ],
-                    landlord: {
-                        name: "Priya Sharma",
-                        phone: "+91 87654 32109",
-                        email: "priya.sharma@example.com",
-                        rating: 4.8
-                    },
-                    available: true,
-                    availableFrom: "2024-11-25"
-                },
-                {
-                    id: 3,
-                    title: "Luxury 3BHK Villa",
-                    description: "Spacious villa with garden, perfect for families",
-                    rent: 45000,
-                    deposit: 90000,
-                    type: "Villa",
-                    bedrooms: 3,
-                    bathrooms: 3,
-                    area: 2000,
-                    location: "Whitefield, Bangalore",
-                    address: "789 Garden View, Whitefield, Bangalore - 560066",
-                    amenities: ["Garden", "Parking", "Security", "Power Backup", "Water Supply"],
-                    images: [
-                        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400",
-                        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400"
-                    ],
-                    landlord: {
-                        name: "Amit Patel",
-                        phone: "+91 76543 21098",
-                        email: "amit.patel@example.com",
-                        rating: 4.3
-                    },
-                    available: true,
-                    availableFrom: "2024-12-15"
-                },
-                {
-                    id: 4,
-                    title: "Budget 1BHK Apartment",
-                    description: "Affordable housing option with basic amenities",
-                    rent: 12000,
-                    deposit: 24000,
-                    type: "Apartment",
-                    bedrooms: 1,
-                    bathrooms: 1,
-                    area: 500,
-                    location: "Electronic City, Bangalore",
-                    address: "321 Tech Park Road, Electronic City, Bangalore - 560100",
-                    amenities: ["Security", "Water Supply", "Parking"],
-                    images: [
-                        "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400"
-                    ],
-                    landlord: {
-                        name: "Sunita Reddy",
-                        phone: "+91 65432 10987",
-                        email: "sunita.reddy@example.com",
-                        rating: 4.0
-                    },
-                    available: false,
-                    availableFrom: "2025-01-01"
-                }
-            ];
-            setAvailableProperties(mockProperties);
+            setAvailableError(errorMsg);
+            setAvailableProperties([]);
         } finally {
             setAvailableLoading(false);
         }
@@ -322,7 +220,6 @@ const PropertiesPage = () => {
         try {
             const token = localStorage.getItem("token");
 
-
             const response = await axios.post(`http://localhost:5000/api/properties/${propertyId}/interest`, {
                 message: message || "I am interested in this property. Please contact me to discuss further."
             }, {
@@ -334,15 +231,25 @@ const PropertiesPage = () => {
 
             // Show success message
             alert(response.data.message || "Your request has been sent to the property owner!");
+            
+            // Close the dialog
+            setContactDialogOpen(false);
+            setContactProperty(null);
         } catch (error) {
             console.error("Error expressing interest:", error);
 
             // Show user-friendly error message
+            let errorMessage = "Failed to send request. Please try again.";
+            
             if (error.response?.data?.message) {
-                alert(error.response.data.message);
-            } else {
-                alert("Failed to send request. Please try again.");
+                errorMessage = error.response.data.message;
+            } else if (error.response?.status === 401) {
+                errorMessage = "Your session has expired. Please log in again.";
+            } else if (error.response?.status === 400) {
+                errorMessage = error.response.data?.message || "You may have already submitted a request for this property.";
             }
+            
+            alert(errorMessage);
             throw error;
         }
     };
@@ -382,27 +289,6 @@ const PropertiesPage = () => {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
                     {property.description}
                 </Typography>
-
-                <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <BedIcon fontSize="small" color="action" />
-                        <Typography variant="body2" sx={{ ml: 0.5 }}>
-                            {property.bedrooms} Bed
-                        </Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <BathtubIcon fontSize="small" color="action" />
-                        <Typography variant="body2" sx={{ ml: 0.5 }}>
-                            {property.bathrooms} Bath
-                        </Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <SquareFootIcon fontSize="small" color="action" />
-                        <Typography variant="body2" sx={{ ml: 0.5 }}>
-                            {property.area} sqft
-                        </Typography>
-                    </Box>
-                </Box>
 
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                     <Box>
@@ -630,6 +516,13 @@ const PropertiesPage = () => {
             {/* Tab 1: Available Properties */}
             {tabValue === 1 && (
                 <Box>
+                    {/* Error Alert */}
+                    {availableError && (
+                        <Alert severity="error" sx={{ mb: 3 }}>
+                            {availableError}
+                        </Alert>
+                    )}
+
                     {/* Filters */}
                     <Card sx={{ mb: 4 }}>
                         <CardContent>
@@ -637,7 +530,6 @@ const PropertiesPage = () => {
                                 <Grid item xs={12} md={3}>
                                     <TextField
                                         fullWidth
-                                        placeholder="Search properties..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         InputProps={{

@@ -1,4 +1,4 @@
-import React, { useState, memo } from "react";
+import { useState, memo } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
@@ -23,6 +23,23 @@ const Login = memo(() => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+
+    // Validation
+    if (!email || !email.trim()) {
+      setMessage("Email is required");
+      setLoading(false);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMessage("Invalid email format");
+      setLoading(false);
+      return;
+    }
+    if (!password) {
+      setMessage("Password is required");
+      setLoading(false);
+      return;
+    }
     
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", { email, password });
@@ -135,6 +152,12 @@ const Login = memo(() => {
             Don't have an account?{" "}
             <Link to="/register" style={{ color: "#667eea", textDecoration: "none" }}>
               Register here
+            </Link>
+          </Typography>
+
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            <Link to="/forgot-password" style={{ color: "#667eea", textDecoration: "none" }}>
+              Forgot Password?
             </Link>
           </Typography>
 

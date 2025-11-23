@@ -12,20 +12,17 @@ import propertiesRoutes from "./routes/properties.js";
 import propertyRequestsRoutes from "./routes/propertyRequests.js";
 import landlordPropertiesRoutes from "./routes/landlordProperties.js";
 import landlordAgreementsRoutes from "./routes/landlordAgreements.js";
+import paymentsRoutes from "./routes/payments.js";
 import { verifyToken } from "./middleware/auth.js";
 import { attachUserData } from "./middleware/userMiddleware.js";
 dotenv.config();
 const app = express();
 
 app.use(cors());
-app.use(express.json()); // parse JSON bodies
-
-// Serve static files for uploaded images
+app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
-// mount all routes
 app.use("/api/auth", authRoutes);
-// Apply user data middleware to all protected routes
 app.use("/api/dashboard", verifyToken(), attachUserData, dashboardRoutes);
 
 app.use("/api/tenants", verifyToken(), attachUserData, tenantsRoutes);
@@ -34,8 +31,8 @@ app.use("/api/properties", verifyToken(), attachUserData, propertiesRoutes);
 app.use("/api/property-requests", verifyToken(), attachUserData, propertyRequestsRoutes);
 app.use("/api/landlord-properties", verifyToken(), attachUserData, landlordPropertiesRoutes);
 app.use("/api/landlord-agreements", verifyToken(), attachUserData, landlordAgreementsRoutes);
+app.use("/api/payments", verifyToken(), attachUserData, paymentsRoutes);
 
-// Global error handler
 app.use((error, req, res, next) => {
   console.error("Global error handler:", error);
   res.status(500).json({
@@ -44,12 +41,10 @@ app.use((error, req, res, next) => {
   });
 });
 
-// test route
 app.get("/", (req, res) => {
   res.send("Backend running!");
 });
 
-// connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch(err => {

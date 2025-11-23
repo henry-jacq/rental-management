@@ -244,7 +244,6 @@ const AgreementDialog = ({
               multiline
               rows={4}
               disabled={isReadOnly}
-              placeholder="Enter agreement terms..."
             />
 
             {mode !== 'create' && agreement && (

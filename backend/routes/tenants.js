@@ -9,8 +9,6 @@ const router = express.Router();
 // Get all current tenants for a landlord (from completed property requests)
 router.get("/", requireRole(["landlord"]), async (req, res) => {
   try {
-    console.log("Fetching current tenants for landlord:", req.userData._id);
-
     // Get all completed property requests for this landlord
     const completedRequests = await PropertyRequest.find({
       landlord: req.userData._id,
@@ -22,17 +20,9 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
     })
     .populate({
       path: 'property',
-      select: 'title location address rent type bedrooms bathrooms'
+      select: 'title location address rent type bedrooms bathrooms deposit'
     })
     .sort({ assignedAt: -1 });
-
-    console.log(`Found ${completedRequests.length} completed requests`);
-    console.log("Completed requests:", completedRequests.map(r => ({
-      id: r._id,
-      tenant: r.tenant?.name,
-      property: r.property?.title,
-      status: r.status
-    })));
 
     // Transform the data to match the expected tenant format
     const tenants = completedRequests.map(request => ({
@@ -45,6 +35,7 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
         title: request.property.title,
         location: request.property.location,
         address: request.property.address,
+        rent: request.property.rent,
         type: request.property.type,
         bedrooms: request.property.bedrooms,
         bathrooms: request.property.bathrooms
@@ -60,7 +51,6 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
       requestId: request._id
     }));
 
-    console.log(`Returning ${tenants.length} current tenants`);
     res.json({ tenants });
   } catch (error) {
     console.error("Error fetching current tenants:", error);

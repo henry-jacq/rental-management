@@ -3,6 +3,7 @@ import {
   Home as HomeIcon,
   People as PeopleIcon,
   Description as DescriptionIcon,
+  Payment as PaymentIcon,
 } from "@mui/icons-material";
 import Sidebar from "./Sidebar";
 
@@ -11,6 +12,7 @@ const menuItems = [
   { text: "Properties", icon: <HomeIcon />, path: "/landlord/properties" },
   { text: "Tenants", icon: <PeopleIcon />, path: "/landlord/tenants" },
   { text: "Agreements", icon: <DescriptionIcon />, path: "/landlord/agreements" },
+  { text: "Payments", icon: <PaymentIcon />, path: "/landlord/payments" },
 ];
 
 const LandlordSidebar = ({ onMobileClose, isMobile }) => {

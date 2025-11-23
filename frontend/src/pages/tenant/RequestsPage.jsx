@@ -26,6 +26,7 @@ import {
   Alert,
   CircularProgress,
   Divider,
+  TextField,
 } from "@mui/material";
 import {
   Home as HomeIcon,
@@ -46,6 +47,8 @@ const RequestsPage = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState(''); // 'view', 'agreement'
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -106,6 +109,41 @@ const RequestsPage = () => {
       }
     } catch (error) {
       console.error('Error accepting agreement:', error);
+      alert('Network error. Please try again.');
+    }
+  };
+
+  const handleOpenRejectDialog = (request) => {
+    setSelectedRequest(request);
+    setRejectReason('');
+    setRejectDialogOpen(true);
+  };
+
+  const handleRejectAgreement = async () => {
+    if (!selectedRequest) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/property-requests/${selectedRequest._id}/reject-agreement`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: rejectReason })
+      });
+
+      if (response.ok) {
+        await fetchRequests();
+        setRejectDialogOpen(false);
+        setDialogOpen(false);
+        alert('Agreement rejected. The property request has been closed.');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to reject agreement: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error rejecting agreement:', error);
       alert('Network error. Please try again.');
     }
   };
@@ -440,12 +478,54 @@ const RequestsPage = () => {
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
           <Button 
+            onClick={() => handleOpenRejectDialog(selectedRequest)} 
+            variant="outlined" 
+            color="error"
+            startIcon={<CancelIcon />}
+          >
+            Reject Agreement
+          </Button>
+          <Button 
             onClick={() => handleAcceptAgreement(selectedRequest._id)} 
             variant="contained" 
             color="success"
             startIcon={<CheckCircleIcon />}
           >
             Accept Agreement
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Reject Agreement Dialog */}
+      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Reject Agreement</DialogTitle>
+        <DialogContent>
+          <Alert severity="error" sx={{ mb: 3 }}>
+            Are you sure you want to reject this agreement? This will close the property request and you will need to submit a new request if you're still interested.
+          </Alert>
+          
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Please provide a reason for rejecting this agreement (optional):
+          </Typography>
+          
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            variant="outlined"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleRejectAgreement} 
+            variant="contained" 
+            color="error"
+            startIcon={<CancelIcon />}
+          >
+            Confirm Rejection
           </Button>
         </DialogActions>
       </Dialog>

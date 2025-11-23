@@ -135,7 +135,6 @@ const PropertyContactDialog = ({
             multiline
             rows={4}
             label="Message (Optional)"
-            placeholder="Hi, I'm interested in this property. I would like to know more about..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             sx={{ mb: 2 }}

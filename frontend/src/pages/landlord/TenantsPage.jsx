@@ -617,7 +617,6 @@ const TenantsPage = () => {
                 label="Response Message"
                 value={responseData.response}
                 onChange={(e) => setResponseData({ ...responseData, response: e.target.value })}
-                placeholder="Add a message for the tenant..."
               />
             </Box>
           )}
@@ -662,7 +661,6 @@ const TenantsPage = () => {
                 label="Agreement Terms"
                 value={responseData.customTerms}
                 onChange={(e) => setResponseData({ ...responseData, customTerms: e.target.value })}
-                placeholder="Enter custom agreement terms or modify selected template..."
                 helperText="These terms will be sent to the tenant for review and acceptance"
               />
             </Box>
@@ -798,6 +796,22 @@ const TenantsPage = () => {
                     {selectedRequest.message || 'No message provided'}
                   </Typography>
                 </Grid>
+
+                {selectedRequest.landlordResponse && (
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom>
+                      {selectedRequest.status === 'Rejected' && selectedRequest.landlordResponse.includes('rejected') 
+                        ? 'Rejection Reason' 
+                        : 'Your Response'}
+                    </Typography>
+                    <Alert 
+                      severity={selectedRequest.status === 'Rejected' ? 'error' : 'info'} 
+                      sx={{ mb: 2 }}
+                    >
+                      {selectedRequest.landlordResponse}
+                    </Alert>
+                  </Grid>
+                )}
 
                 <Grid item xs={12}>
                   <Typography variant="h6" gutterBottom>Workflow Progress</Typography>

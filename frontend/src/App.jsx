@@ -4,6 +4,8 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, CircularProgress, Box } from "@mui/material";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 import AuthGuard from "./components/AuthGuard";
 import { UserProvider } from "./contexts/UserContext";
 
@@ -21,12 +23,14 @@ const PropertiesPage = lazy(() => import("./pages/landlord/PropertiesPage"));
 const TenantsPage = lazy(() => import("./pages/landlord/TenantsPage"));
 const AgreementsPage = lazy(() => import("./pages/landlord/AgreementsPage"));
 const ReportsPage = lazy(() => import("./pages/landlord/ReportsPage"));
+const LandlordPaymentsPage = lazy(() => import("./pages/landlord/PaymentsPage"));
 
 // Lazy load tenant pages
 const TenantDashboard = lazy(() => import("./pages/tenant/DashboardPage"));
 const TenantProfilePage = lazy(() => import("./pages/tenant/ProfilePage"));
 const TenantPropertiesPage = lazy(() => import("./pages/tenant/PropertiesPage"));
 const TenantRequestsPage = lazy(() => import("./pages/tenant/RequestsPage"));
+const TenantPaymentsPage = lazy(() => import("./pages/tenant/PaymentsPage"));
 
 
 const theme = createTheme({
@@ -455,6 +459,16 @@ function App() {
                 <Register />
               </AuthGuard>
             } />
+            <Route path="/forgot-password" element={
+              <AuthGuard>
+                <ForgotPassword />
+              </AuthGuard>
+            } />
+            <Route path="/reset-password/:token" element={
+              <AuthGuard>
+                <ResetPassword />
+              </AuthGuard>
+            } />
             <Route path="/tenant" element={
               <Suspense fallback={<LoadingFallback />}>
                 <ProtectedRoute role="tenant">
@@ -520,6 +534,15 @@ function App() {
                 </ProtectedRoute>
               </Suspense>
             } />
+            <Route path="/landlord/payments" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ProtectedRoute role="landlord">
+                  <LandlordLayout>
+                    <LandlordPaymentsPage />
+                  </LandlordLayout>
+                </ProtectedRoute>
+              </Suspense>
+            } />
 
 
             {/* Tenant Routes */}
@@ -546,6 +569,15 @@ function App() {
                 <ProtectedRoute role="tenant">
                   <TenantLayout>
                     <TenantRequestsPage />
+                  </TenantLayout>
+                </ProtectedRoute>
+              </Suspense>
+            } />
+            <Route path="/tenant/payments" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ProtectedRoute role="tenant">
+                  <TenantLayout>
+                    <TenantPaymentsPage />
                   </TenantLayout>
                 </ProtectedRoute>
               </Suspense>
