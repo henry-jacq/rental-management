@@ -83,12 +83,10 @@ const PropertySchema = new mongoose.Schema(
   }
 );
 
-// Virtual for property age
 PropertySchema.virtual('propertyAge').get(function() {
   return Math.floor((Date.now() - this.createdAt) / (1000 * 60 * 60 * 24));
 });
 
-// Index for search functionality
 PropertySchema.index({ 
   title: 'text', 
   description: 'text', 
@@ -96,7 +94,6 @@ PropertySchema.index({
   address: 'text'
 });
 
-// Index for filtering
 PropertySchema.index({ rent: 1, type: 1, location: 1, available: 1 });
 
 export default mongoose.model("Property", PropertySchema);

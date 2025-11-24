@@ -37,8 +37,7 @@ const LeaseDetailsSchema = new mongoose.Schema(
 
 const KYCSchema = new mongoose.Schema(
   {
-    status: { type: String, enum: ["Pending", "Verified", "Rejected"], default: "Pending" },
-
+    status: { type: String, enum: ["Pending", "Verified", "Rejected"], default: "Pending" }
   },
   { _id: false }
 );
@@ -52,19 +51,14 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["tenant", "landlord"], required: true },
     resetOTP: { type: String },
     resetOTPExpires: { type: Date },
-
- 
     address: { type: AddressSchema },
     paymentVault: { type: PaymentVaultSchema },
     kyc: { type: KYCSchema },
-
     propertiesOwned: [{ type: mongoose.Schema.Types.ObjectId, ref: "Property" }],
     digitalSignature: { type: String },
     company: { type: String },
-
     propertyRented: { type: mongoose.Schema.Types.ObjectId, ref: "Property" },
-    lease: { type: LeaseDetailsSchema },
-
+    lease: { type: LeaseDetailsSchema }
   },
   { timestamps: true }
 );

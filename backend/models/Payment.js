@@ -66,7 +66,6 @@ const PaymentSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for efficient querying
 PaymentSchema.index({ tenant: 1, status: 1, dueDate: -1 });
 PaymentSchema.index({ landlord: 1, status: 1, dueDate: -1 });
 
