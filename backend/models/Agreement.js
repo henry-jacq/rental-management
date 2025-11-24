@@ -63,23 +63,19 @@ const AgreementSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for efficient querying
 AgreementSchema.index({ landlord: 1, createdAt: -1 });
 AgreementSchema.index({ landlord: 1, status: 1 });
 AgreementSchema.index({ landlord: 1, property: 1 });
 AgreementSchema.index({ landlord: 1, tenant: 1 });
 AgreementSchema.index({ title: "text", description: "text", terms: "text" });
 
-// Virtual for document count
 AgreementSchema.virtual('documentCount').get(function() {
   return this.documents ? this.documents.length : 0;
 });
 
-// Ensure virtuals are included in JSON output
 AgreementSchema.set('toJSON', { virtuals: true });
 AgreementSchema.set('toObject', { virtuals: true });
 
-// Virtual for status display
 AgreementSchema.virtual('statusDisplay').get(function() {
   const statusMap = {
     'Draft': 'Draft',
@@ -90,18 +86,15 @@ AgreementSchema.virtual('statusDisplay').get(function() {
   return statusMap[this.status] || this.status;
 });
 
-// Virtual for formatted creation date
 AgreementSchema.virtual('createdAtFormatted').get(function() {
   return this.createdAt ? this.createdAt.toLocaleDateString() : '';
 });
 
-// Pre-save middleware to update the updatedAt field
 AgreementSchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();
 });
 
-// Pre-save middleware to validate landlord role
 AgreementSchema.pre('save', async function(next) {
   if (this.isNew || this.isModified('landlord')) {
     try {
@@ -117,7 +110,6 @@ AgreementSchema.pre('save', async function(next) {
   next();
 });
 
-// Pre-save middleware to validate tenant role if tenant is specified
 AgreementSchema.pre('save', async function(next) {
   if (this.tenant && (this.isNew || this.isModified('tenant'))) {
     try {
@@ -133,7 +125,6 @@ AgreementSchema.pre('save', async function(next) {
   next();
 });
 
-// Static method to find agreements by landlord with optional filters
 AgreementSchema.statics.findByLandlord = function(landlordId, filters = {}) {
   const query = { landlord: landlordId };
   
@@ -159,24 +150,20 @@ AgreementSchema.statics.findByLandlord = function(landlordId, filters = {}) {
     .sort({ createdAt: -1 });
 };
 
-// Instance method to add document
 AgreementSchema.methods.addDocument = function(documentData) {
   this.documents.push(documentData);
   return this.save();
 };
 
-// Instance method to remove document
 AgreementSchema.methods.removeDocument = function(documentId) {
   this.documents.id(documentId).remove();
   return this.save();
 };
 
-// Instance method to check if agreement is editable
 AgreementSchema.methods.isEditable = function() {
   return this.status === 'Draft' || this.status === 'Active';
 };
 
-// Instance method to check if agreement is expired
 AgreementSchema.methods.isExpired = function() {
   return this.expiresAt && this.expiresAt < new Date();
 };

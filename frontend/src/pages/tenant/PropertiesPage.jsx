@@ -46,11 +46,9 @@ import PropertyContactDialog from "../../components/PropertyContactDialog";
 const PropertiesPage = () => {
     const [tabValue, setTabValue] = useState(0);
 
-    // My Properties (Acquired) - Tab 0
     const [myProperties, setMyProperties] = useState([]);
     const [myPropertiesLoading, setMyPropertiesLoading] = useState(true);
 
-    // Available Properties - Tab 1
     const [availableProperties, setAvailableProperties] = useState([]);
     const [filteredProperties, setFilteredProperties] = useState([]);
     const [availableLoading, setAvailableLoading] = useState(true);
@@ -80,7 +78,6 @@ const PropertiesPage = () => {
 
             console.log("Fetching acquired properties for tenant...");
 
-            // Fetch tenant's acquired properties from completed requests
             const response = await axios.get("http://localhost:5000/api/property-requests/tenant?status=Completed", {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -90,11 +87,9 @@ const PropertiesPage = () => {
 
             console.log("Acquired properties API response:", response.data);
 
-            // Transform completed requests to property format
             const acquiredProperties = (response.data.requests || []).map(request => ({
                 ...request.property,
                 id: request.property._id,
-                // Ensure rentalType is set, default to property's rentalType or 'Rental' if not specified
                 rentalType: request.property.rentalType || 'Rental',
                 lease: {
                     startDate: request.leaseStartDate,
@@ -136,7 +131,6 @@ const PropertiesPage = () => {
         } catch (error) {
             console.error("Error fetching properties:", error);
 
-            // Show error message instead of falling back to mock data
             let errorMsg = "Failed to load properties. Please try again later.";
             
             if (error.response?.status === 401) {
@@ -157,7 +151,6 @@ const PropertiesPage = () => {
     const filterProperties = () => {
         let filtered = availableProperties;
 
-        // Search filter
         if (searchTerm) {
             filtered = filtered.filter(property =>
                 property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -166,7 +159,6 @@ const PropertiesPage = () => {
             );
         }
 
-        // Price range filter
         if (priceRange) {
             const [min, max] = priceRange.split('-').map(Number);
             filtered = filtered.filter(property => {
@@ -178,12 +170,10 @@ const PropertiesPage = () => {
             });
         }
 
-        // Property type filter
         if (propertyType) {
             filtered = filtered.filter(property => property.type === propertyType);
         }
 
-        // Rental type filter
         if (rentalType) {
             filtered = filtered.filter(property =>
                 property.rentalType === rentalType || property.rentalType === "Both"
@@ -229,16 +219,13 @@ const PropertiesPage = () => {
                 }
             });
 
-            // Show success message
             alert(response.data.message || "Your request has been sent to the property owner!");
             
-            // Close the dialog
             setContactDialogOpen(false);
             setContactProperty(null);
         } catch (error) {
             console.error("Error expressing interest:", error);
 
-            // Show user-friendly error message
             let errorMessage = "Failed to send request. Please try again.";
             
             if (error.response?.data?.message) {

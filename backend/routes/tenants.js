@@ -6,10 +6,9 @@ import User from "../models/User.js";
 
 const router = express.Router();
 
-// Get all current tenants for a landlord (from completed property requests)
 router.get("/", requireRole(["landlord"]), async (req, res) => {
   try {
-    // Get all completed property requests for this landlord
+
     const completedRequests = await PropertyRequest.find({
       landlord: req.userData._id,
       status: "Completed"
@@ -24,7 +23,6 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
     })
     .sort({ assignedAt: -1 });
 
-    // Transform the data to match the expected tenant format
     const tenants = completedRequests.map(request => ({
       _id: request.tenant._id,
       name: request.tenant.name,
@@ -61,11 +59,9 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Create new tenant
 router.post("/", requireRole(["landlord"]), async (req, res) => {
   try {
-    // In a real application, create in database
-    // const tenant = await Tenant.create({ ...req.body, landlordId: req.user.id });
+
     
     const newTenant = {
       id: Date.now(),
@@ -79,15 +75,9 @@ router.post("/", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Update tenant
 router.put("/:id", requireRole(["landlord"]), async (req, res) => {
   try {
-    // In a real application, update in database
-    // const tenant = await Tenant.findOneAndUpdate(
-    //   { _id: req.params.id, landlordId: req.user.id },
-    //   req.body,
-    //   { new: true }
-    // );
+
     
     const updatedTenant = {
       id: req.params.id,
@@ -101,11 +91,9 @@ router.put("/:id", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Delete tenant
 router.delete("/:id", requireRole(["landlord"]), async (req, res) => {
   try {
-    // In a real application, delete from database
-    // await Tenant.findOneAndDelete({ _id: req.params.id, landlordId: req.user.id });
+
     
     res.json({ message: "Tenant deleted successfully" });
   } catch (error) {

@@ -94,7 +94,6 @@ router.get("/landlord", async (req, res) => {
   }
 });
 
-// Mark payment as paid (Tenant only) - Changes status to "Submitted"
 router.put("/:id/mark-paid", async (req, res) => {
   try {
     const { paymentMethod, transactionId, paidDate, notes } = req.body;
@@ -143,7 +142,6 @@ router.put("/:id/mark-paid", async (req, res) => {
   }
 });
 
-// Verify payment (Landlord only) - Changes status to "Verified"
 router.put("/:id/verify", async (req, res) => {
   try {
     if (req.user.role !== "landlord") {
@@ -180,7 +178,6 @@ router.put("/:id/verify", async (req, res) => {
   }
 });
 
-// Reject payment (Landlord only) - Changes status back to "Pending"
 router.put("/:id/reject", async (req, res) => {
   try {
     const { reason } = req.body;
@@ -220,7 +217,6 @@ router.put("/:id/reject", async (req, res) => {
   }
 });
 
-// Delete payment (Landlord only - for pending payments)
 router.delete("/:id", async (req, res) => {
   try {
     if (req.user.role !== "landlord") {

@@ -15,7 +15,6 @@ import fs from "fs";
 
 const router = express.Router();
 
-// Get all agreements for the logged-in landlord
 router.get("/", requireRole(["landlord"]), async (req, res) => {
   try {
     console.log("Fetching agreements for landlord:", req.userData._id);
@@ -51,7 +50,6 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
     
     query = query.sort(sortOptions);
     
-    // Get total count for pagination
     const baseQuery = { landlord: req.userData._id };
     if (filters.status) baseQuery.status = filters.status;
     if (filters.property) baseQuery.property = filters.property;
@@ -60,7 +58,6 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
     
     const total = await Agreement.countDocuments(baseQuery);
     
-    // Apply pagination
     const agreements = await query.skip(skip).limit(parseInt(limit));
     
     console.log("Found agreements:", agreements.length);
@@ -84,7 +81,6 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Get agreement statistics for dashboard (must come before /:id route)
 router.get("/stats/summary", requireRole(["landlord"]), async (req, res) => {
   try {
     const landlordId = req.userData._id;
@@ -111,7 +107,6 @@ router.get("/stats/summary", requireRole(["landlord"]), async (req, res) => {
       terminated: 0
     };
 
-    // Get recent agreements
     const recentAgreements = await Agreement.find({ landlord: landlordId })
       .populate('property', 'title')
       .populate('tenant', 'name')
@@ -132,7 +127,6 @@ router.get("/stats/summary", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Get a specific agreement by ID
 router.get("/:id", requireRole(["landlord"]), async (req, res) => {
   try {
     const agreement = await Agreement.findOne({
@@ -159,7 +153,6 @@ router.get("/:id", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Create a new agreement
 router.post("/", 
   requireRole(["landlord"]),
   cleanupOnError,
@@ -177,7 +170,6 @@ router.post("/",
         expiresAt
       } = req.body;
 
-      // Validate required fields
       if (!title || !title.trim()) {
         return res.status(400).json({
           error: "Validation error",
@@ -192,7 +184,6 @@ router.post("/",
         });
       }
 
-      // Validate property exists if provided
       if (property) {
         const Property = (await import("../models/Property.js")).default;
         const propertyExists = await Property.findOne({ 
@@ -207,17 +198,13 @@ router.post("/",
         }
       }
 
-
-
-      // Create new agreement (tenant will be null initially)
-      // Tenants can be assigned later through the edit functionality
       const agreement = new Agreement({
         title: title.trim(),
         description: description?.trim(),
         terms: terms.trim(),
         landlord: req.userData._id,
         property: property || null,
-        tenant: null, // Tenant assignment happens during editing, not creation
+        tenant: null,
         status,
         documents: req.uploadedDocuments || [],
         expiresAt: expiresAt ? new Date(expiresAt) : null
@@ -225,7 +212,6 @@ router.post("/",
 
       const savedAgreement = await agreement.save();
       
-      // Populate references for response
       await savedAgreement.populate('property', 'title location address');
       await savedAgreement.populate('tenant', 'name email phone');
 
@@ -243,7 +229,6 @@ router.post("/",
   }
 );
 
-// Update an existing agreement
 router.put("/:id",
   requireRole(["landlord"]),
   cleanupOnError,
@@ -264,7 +249,6 @@ router.put("/:id",
         });
       }
 
-      // Check if agreement is editable
       if (!agreement.isEditable()) {
         return res.status(400).json({
           error: "Agreement not editable",
@@ -283,7 +267,6 @@ router.put("/:id",
         removeDocuments = []
       } = req.body;
 
-      // Validate tenant exists if being assigned
       if (tenant !== undefined && tenant !== null && tenant !== "") {
         const User = (await import("../models/User.js")).default;
         const tenantExists = await User.findOne({ 
@@ -298,7 +281,6 @@ router.put("/:id",
         }
       }
 
-      // Update fields if provided
       if (title !== undefined) agreement.title = title.trim();
       if (description !== undefined) agreement.description = description?.trim();
       if (terms !== undefined) agreement.terms = terms.trim();
@@ -307,7 +289,6 @@ router.put("/:id",
       if (status !== undefined) agreement.status = status;
       if (expiresAt !== undefined) agreement.expiresAt = expiresAt ? new Date(expiresAt) : null;
 
-      // Handle document removal
       let documentsToRemoveArray = [];
       if (removeDocuments) {
         try {
@@ -379,7 +360,6 @@ router.delete("/:id", requireRole(["landlord"]), async (req, res) => {
       });
     }
 
-    // Delete the agreement
     await Agreement.findByIdAndDelete(req.params.id);
 
     res.json({
@@ -433,12 +413,10 @@ router.get("/:id/download/:documentId", requireRole(["landlord"]), async (req, r
       });
     }
 
-    // Set appropriate headers
     res.setHeader('Content-Type', document.mimeType);
     res.setHeader('Content-Length', stats.size);
     res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
 
-    // Stream the file
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
 

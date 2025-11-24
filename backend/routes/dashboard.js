@@ -7,7 +7,7 @@ import Property from "../models/Property.js";
 const router = express.Router();
 
 router.get("/tenant", requireRole(["tenant"]), (req, res) => {
-  // Use real user data from database
+
   const dashboardData = {
     message: `Welcome Tenant ${req.userData.name}`,
     user: {
@@ -25,7 +25,7 @@ router.get("/tenant", requireRole(["tenant"]), (req, res) => {
       nextPaymentDate: "December 1, 2024" // TODO: Calculate next payment date
     },
     recentPayments: [
-      // TODO: Fetch from payments collection
+
       { date: "2024-11-01", amount: req.userData.lease?.rentAmount || 1200, status: "Paid" },
       { date: "2024-10-01", amount: req.userData.lease?.rentAmount || 1200, status: "Paid" }
     ]
@@ -36,18 +36,16 @@ router.get("/tenant", requireRole(["tenant"]), (req, res) => {
 
 router.get("/landlord", requireRole(["landlord"]), async (req, res) => {
   try {
-    // Calculate active tenants from completed property requests
+
     const activeTenants = await PropertyRequest.countDocuments({
       landlord: req.userData._id,
       status: "Completed"
     });
 
-    // Calculate total properties owned
     const totalProperties = await Property.countDocuments({
       landlord: req.userData._id
     });
 
-    // Calculate monthly revenue from active leases
     const completedRequests = await PropertyRequest.find({
       landlord: req.userData._id,
       status: "Completed"
@@ -57,7 +55,6 @@ router.get("/landlord", requireRole(["landlord"]), async (req, res) => {
       return total + (request.rentAmount || 0);
     }, 0);
 
-    // Calculate occupancy rate
     const occupancyRate = totalProperties > 0 ? Math.round((activeTenants / totalProperties) * 100) : 0;
 
     const dashboardData = {
@@ -77,7 +74,7 @@ router.get("/landlord", requireRole(["landlord"]), async (req, res) => {
         occupancyRate
       },
       recentActivity: [
-        // TODO: Fetch from payments collection
+
         { type: "Payment", description: "Recent rent payment received", amount: 1200 }
       ]
     };
@@ -89,10 +86,9 @@ router.get("/landlord", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// User profile endpoint
 router.get("/profile", async (req, res) => {
   try {
-    // Use real user data from database (already fetched by middleware)
+
     const userProfile = {
       id: req.userData._id,
       name: req.userData.name,
@@ -115,7 +111,7 @@ router.get("/profile", async (req, res) => {
       kyc: {
         status: req.userData.kyc?.status || "Pending"
       },
-      // Role-specific data
+
       ...(req.userData.role === 'landlord' && {
         propertiesOwned: req.userData.propertiesOwned || [],
         digitalSignature: req.userData.digitalSignature,
@@ -134,12 +130,10 @@ router.get("/profile", async (req, res) => {
   }
 });
 
-// Update user profile endpoint
 router.put("/profile", async (req, res) => {
   try {
     const { name, phone, emergencyContact, address, company } = req.body;
-    
-    // Prepare update data
+
     const updateData = {};
     if (name) updateData.name = name;
     if (phone) updateData.phone = phone;
@@ -147,7 +141,6 @@ router.put("/profile", async (req, res) => {
     if (address) updateData.address = address;
     if (company && req.userData.role === 'landlord') updateData.company = company;
 
-    // Update user in database
     const updatedUser = await User.findByIdAndUpdate(
       req.userData._id,
       updateData,

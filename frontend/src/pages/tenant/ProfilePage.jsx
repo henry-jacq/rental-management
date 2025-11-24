@@ -35,7 +35,6 @@ const ProfilePage = () => {
   useEffect(() => {
     if (user) {
       const nameParts = user.name ? user.name.split(' ') : ['', ''];
-      // Fetch user profile data from API
       fetchUserProfile();
       setProfile({
         firstName: nameParts[0] || "",
@@ -93,9 +92,7 @@ const ProfilePage = () => {
 
       if (response.ok) {
         const updatedData = await response.json();
-        // Update user context with new data
         setIsEditing(false);
-        // Optionally show success message
         console.log('Profile updated successfully');
       } else {
         console.error('Failed to update profile');

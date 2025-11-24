@@ -5,18 +5,15 @@ import PropertyRequest from "../models/PropertyRequest.js";
 
 const router = express.Router();
 
-// Get available properties for tenants
 router.get("/available", requireRole(["tenant"]), async (req, res) => {
   try {
     const { search, minPrice, maxPrice, propertyType, location } = req.query;
 
-    // Build query for available properties
     let query = {
       available: true,
       status: "Available"
     };
 
-    // Apply filters
     if (minPrice || maxPrice) {
       query.rent = {};
       if (minPrice) query.rent.$gte = parseInt(minPrice);
@@ -43,13 +40,11 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
       ];
     }
 
-    // Fetch properties from database
     let properties = await Property.find(query)
       .populate('landlord', 'name email phone')
       .sort({ createdAt: -1 })
       .lean();
 
-    // Transform data for frontend compatibility
     properties = properties.map(property => ({
       id: property._id,
       title: property.title,
@@ -76,7 +71,6 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
       createdAt: property.createdAt
     }));
 
-    // If no properties found in database, return mock data for demo
     if (properties.length === 0) {
       properties = [
         {
@@ -153,7 +147,6 @@ router.get("/available", requireRole(["tenant"]), async (req, res) => {
   }
 });
 
-// Get property details by ID
 router.get("/:id", requireRole(["tenant", "landlord"]), async (req, res) => {
   try {
     const property = await Property.findById(req.params.id)
@@ -164,7 +157,6 @@ router.get("/:id", requireRole(["tenant", "landlord"]), async (req, res) => {
       return res.status(404).json({ message: "Property not found" });
     }
 
-    // Transform data for frontend compatibility
     const transformedProperty = {
       id: property._id,
       title: property.title,
@@ -198,13 +190,11 @@ router.get("/:id", requireRole(["tenant", "landlord"]), async (req, res) => {
   }
 });
 
-// Express interest in a property
 router.post("/:id/interest", requireRole(["tenant"]), async (req, res) => {
   try {
     const propertyId = req.params.id;
     const { message } = req.body;
 
-    // Check if property exists
     const property = await Property.findById(propertyId).populate('landlord');
     if (!property) {
       return res.status(404).json({ message: "Property not found" });
@@ -214,7 +204,6 @@ router.post("/:id/interest", requireRole(["tenant"]), async (req, res) => {
       return res.status(400).json({ message: "Property is not available" });
     }
 
-    // Check if tenant already has a pending request
     const existingRequest = await PropertyRequest.findOne({
       property: propertyId,
       tenant: req.userData._id,
@@ -227,7 +216,6 @@ router.post("/:id/interest", requireRole(["tenant"]), async (req, res) => {
       });
     }
 
-    // Create property request
     const propertyRequest = new PropertyRequest({
       property: propertyId,
       tenant: req.userData._id,
@@ -237,7 +225,6 @@ router.post("/:id/interest", requireRole(["tenant"]), async (req, res) => {
 
     await propertyRequest.save();
 
-    // Increment inquiries count
     property.inquiries = (property.inquiries || 0) + 1;
     await property.save();
 
@@ -251,18 +238,15 @@ router.post("/:id/interest", requireRole(["tenant"]), async (req, res) => {
   }
 });
 
-// Get current tenants for landlord
 router.get("/tenants", requireRole(["landlord"]), async (req, res) => {
   try {
     const landlordId = req.userData._id;
 
-    // Find all properties owned by landlord that have current tenants
     const properties = await Property.find({
       landlord: landlordId,
       currentTenant: { $exists: true, $ne: null }
     }).populate('currentTenant', 'name email phone lease');
 
-    // Transform the data to include tenant and property information
     const tenants = properties.map(property => ({
       _id: property.currentTenant._id,
       name: property.currentTenant.name,

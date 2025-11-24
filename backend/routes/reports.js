@@ -3,15 +3,10 @@ import { requireRole } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Get financial reports
 router.get("/financial", requireRole(["landlord"]), async (req, res) => {
   try {
     const { range } = req.query;
-    
-    // In a real application, calculate from database based on date range
-    // const financialData = await calculateFinancialReport(req.user.id, range);
-    
-    // Mock data based on user and date range
+
     const baseRevenue = 5000;
     const multiplier = range === "year" ? 12 : range === "quarter" ? 3 : 1;
     
@@ -37,10 +32,9 @@ router.get("/financial", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Get property reports
 router.get("/property", requireRole(["landlord"]), async (req, res) => {
   try {
-    // In a real application, fetch from database
+
     const propertyData = [
       { 
         property: "Property A", 

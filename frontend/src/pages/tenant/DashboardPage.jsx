@@ -33,20 +33,14 @@ const DashboardPage = () => {
       try {
         const token = localStorage.getItem("token");
 
-        // Note: Dashboard stats can be fetched here if needed in the future
-
-        // Fetch current property information
         await fetchCurrentProperty(token);
 
-        // Fetch property requests
         await fetchPropertyRequests(token);
 
-        // Fetch my properties (acquired properties)
         await fetchMyProperties(token);
 
       } catch (err) {
         console.error("Error fetching data:", err);
-        // Keep existing user data from context if API fails
       }
     };
     fetchData();
@@ -54,7 +48,6 @@ const DashboardPage = () => {
 
   const fetchCurrentProperty = async (token) => {
     try {
-      // Check if user has a current property from user context
       if (user.propertyRented) {
         const propertyRes = await axios.get(`http://localhost:5000/api/properties/${user.propertyRented}`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -79,7 +72,6 @@ const DashboardPage = () => {
       if (requestsRes.data?.requests) {
         setPropertyRequests(requestsRes.data.requests);
 
-        // Check if there's a completed request (assigned property)
         const completedRequest = requestsRes.data.requests.find(req => req.status === 'Completed');
         if (completedRequest && !currentProperty) {
           setCurrentProperty(completedRequest.property);
@@ -93,7 +85,6 @@ const DashboardPage = () => {
 
   const fetchMyProperties = async (token) => {
     try {
-      // Fetch tenant's acquired properties from completed requests
       const response = await axios.get("http://localhost:5000/api/property-requests/tenant?status=Completed", {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -102,7 +93,6 @@ const DashboardPage = () => {
       });
 
       if (response.data?.requests) {
-        // Transform completed requests to property format
         const acquiredProperties = response.data.requests.map(request => ({
           ...request.property,
           id: request.property._id,

@@ -7,7 +7,6 @@ import fs from "fs";
 
 const router = express.Router();
 
-// Configure multer for image uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const uploadPath = 'uploads/properties';
@@ -25,7 +24,7 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
+        fileSize: 5 * 1024 * 1024,
     },
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
@@ -36,7 +35,6 @@ const upload = multer({
     }
 });
 
-// Get all properties for the logged-in landlord
 router.get("/", requireRole(["landlord"]), async (req, res) => {
     try {
         console.log("Fetching properties for landlord:", req.userData._id);
@@ -57,7 +55,6 @@ router.get("/", requireRole(["landlord"]), async (req, res) => {
     }
 });
 
-// Get a specific property by ID
 router.get("/:id", requireRole(["landlord"]), async (req, res) => {
     try {
         const property = await Property.findOne({
@@ -76,7 +73,6 @@ router.get("/:id", requireRole(["landlord"]), async (req, res) => {
     }
 });
 
-// Create a new property
 router.post("/", requireRole(["landlord"]), async (req, res) => {
     try {
         console.log("Creating property for landlord:", req.userData._id);
@@ -102,7 +98,6 @@ router.post("/", requireRole(["landlord"]), async (req, res) => {
             rentalType
         } = req.body;
 
-        // Validate required fields
         if (!title || !description || !rent || !type || !location) {
             return res.status(400).json({ 
                 error: "Validation error",
@@ -148,7 +143,6 @@ router.post("/", requireRole(["landlord"]), async (req, res) => {
     }
 });
 
-// Update a property
 router.put("/:id", requireRole(["landlord"]), async (req, res) => {
     try {
         const property = await Property.findOneAndUpdate(
@@ -168,7 +162,6 @@ router.put("/:id", requireRole(["landlord"]), async (req, res) => {
     }
 });
 
-// Delete a property
 router.delete("/:id", requireRole(["landlord"]), async (req, res) => {
     try {
         const property = await Property.findOneAndDelete({
@@ -180,7 +173,6 @@ router.delete("/:id", requireRole(["landlord"]), async (req, res) => {
             return res.status(404).json({ message: "Property not found" });
         }
 
-        // Delete associated images
         if (property.images && property.images.length > 0) {
             property.images.forEach(imagePath => {
                 const fullPath = path.join(process.cwd(), imagePath);
@@ -197,7 +189,6 @@ router.delete("/:id", requireRole(["landlord"]), async (req, res) => {
     }
 });
 
-// Upload property images
 router.post("/:id/images", requireRole(["landlord"]), upload.array('images', 10), async (req, res) => {
     try {
         const property = await Property.findOne({
@@ -211,7 +202,6 @@ router.post("/:id/images", requireRole(["landlord"]), upload.array('images', 10)
 
         const imagePaths = req.files.map(file => `/uploads/properties/${file.filename}`);
 
-        // Add new images to existing ones
         property.images = [...(property.images || []), ...imagePaths];
         await property.save();
 
@@ -226,7 +216,6 @@ router.post("/:id/images", requireRole(["landlord"]), upload.array('images', 10)
     }
 });
 
-// Remove a specific image from property
 router.delete("/:id/images/:imageIndex", requireRole(["landlord"]), async (req, res) => {
     try {
         const property = await Property.findOne({
@@ -243,14 +232,12 @@ router.delete("/:id/images/:imageIndex", requireRole(["landlord"]), async (req, 
             return res.status(400).json({ message: "Invalid image index" });
         }
 
-        // Delete the image file
         const imagePath = property.images[imageIndex];
         const fullPath = path.join(process.cwd(), imagePath);
         if (fs.existsSync(fullPath)) {
             fs.unlinkSync(fullPath);
         }
 
-        // Remove from array
         property.images.splice(imageIndex, 1);
         await property.save();
 

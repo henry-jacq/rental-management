@@ -255,7 +255,6 @@ const PropertiesPage = () => {
   };
 
   const handleDelete = async (id) => {
-    // Find the property to check its status
     const property = properties.find(p => p._id === id);
 
     if (property && property.status !== "Available") {
@@ -310,9 +309,6 @@ const PropertiesPage = () => {
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
             Properties Management
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-            Manage your rental properties and track their status.
           </Typography>
         </Box>
         <Button

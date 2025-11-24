@@ -10,7 +10,7 @@ export const useUser = () => {
   return context;
 };
 
-//decode JWT token
+
 const decodeToken = (token) => {
   try {
     const base64Url = token.split('.')[1];

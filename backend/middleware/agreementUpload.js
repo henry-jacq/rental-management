@@ -2,19 +2,16 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// Ensure uploads directory exists
 const uploadsDir = 'uploads/agreements';
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    // Generate unique filename with timestamp and random string
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const extension = path.extname(file.originalname);
     const baseName = path.basename(file.originalname, extension);
@@ -23,9 +20,7 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter function
 const fileFilter = (req, file, cb) => {
-  // Allowed file types
   const allowedMimeTypes = [
     'application/pdf',
     'application/msword',
@@ -43,17 +38,15 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit per file
-    files: 10 // Maximum 10 files per upload
+    fileSize: 10 * 1024 * 1024,
+    files: 10
   },
   fileFilter: fileFilter
 });
 
-// Error handling middleware for multer errors
 export const handleUploadError = (error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     switch (error.code) {
@@ -87,7 +80,6 @@ export const handleUploadError = (error, req, res, next) => {
   next();
 };
 
-// Utility function to delete uploaded files
 export const deleteUploadedFiles = (files) => {
   if (!files || !Array.isArray(files)) return;
   
@@ -103,7 +95,6 @@ export const deleteUploadedFiles = (files) => {
   });
 };
 
-// Utility function to delete a single file by path
 export const deleteFile = (filePath) => {
   if (fs.existsSync(filePath)) {
     try {
@@ -117,12 +108,10 @@ export const deleteFile = (filePath) => {
   return false;
 };
 
-// Utility function to validate file exists
 export const fileExists = (filePath) => {
   return fs.existsSync(filePath);
 };
 
-// Utility function to get file stats
 export const getFileStats = (filePath) => {
   try {
     return fs.statSync(filePath);
@@ -131,13 +120,10 @@ export const getFileStats = (filePath) => {
   }
 };
 
-// Main upload middleware - supports multiple files
 export const uploadAgreementDocuments = upload.array('documents', 10);
 
-// Single file upload middleware
 export const uploadSingleDocument = upload.single('document');
 
-// Middleware to process uploaded files and add metadata
 export const processUploadedFiles = (req, res, next) => {
   if (req.files && req.files.length > 0) {
     req.uploadedDocuments = req.files.map(file => ({
@@ -163,7 +149,6 @@ export const processUploadedFiles = (req, res, next) => {
   next();
 };
 
-// Middleware to clean up files on error
 export const cleanupOnError = (req, res, next) => {
   const originalSend = res.send;
   const originalJson = res.json;

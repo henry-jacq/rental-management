@@ -28,7 +28,6 @@ const ProtectedRoute = ({ children, role }) => {
       </Box>
     );
   } catch (error) {
-    // If token is invalid, remove it and redirect to login
     localStorage.removeItem("token");
     return <Navigate to="/" replace />;
   }

@@ -7,12 +7,10 @@ import Agreement from "../models/Agreement.js";
 
 const router = express.Router();
 
-// Create a new property request (tenant)
 router.post("/", requireRole(["tenant"]), async (req, res) => {
   try {
     const { propertyId, message } = req.body;
 
-    // Validate property exists and is available
     const property = await Property.findById(propertyId).populate('landlord');
     if (!property) {
       return res.status(404).json({ 
@@ -26,7 +24,6 @@ router.post("/", requireRole(["tenant"]), async (req, res) => {
       });
     }
 
-    // Check if tenant already has a pending request for this property
     const existingRequest = await PropertyRequest.findOne({
       property: propertyId,
       tenant: req.userData._id,
@@ -39,7 +36,6 @@ router.post("/", requireRole(["tenant"]), async (req, res) => {
       });
     }
 
-    // Create new request
     const propertyRequest = new PropertyRequest({
       property: propertyId,
       tenant: req.userData._id,
@@ -64,7 +60,6 @@ router.post("/", requireRole(["tenant"]), async (req, res) => {
   }
 });
 
-// Get all requests for landlord
 router.get("/landlord", requireRole(["landlord"]), async (req, res) => {
   try {
     const { status, property, page = 1, limit = 50 } = req.query;
@@ -74,8 +69,7 @@ router.get("/landlord", requireRole(["landlord"]), async (req, res) => {
     if (property) filters.property = property;
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    // Use aggregation for better performance
+
     const pipeline = [
       { $match: { landlord: req.userData._id, ...filters } },
       { $sort: { createdAt: -1 } },
@@ -142,7 +136,6 @@ router.get("/landlord", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Get all requests for tenant
 router.get("/tenant", requireRole(["tenant"]), async (req, res) => {
   try {
     const { status, page = 1, limit = 50 } = req.query;
@@ -151,8 +144,7 @@ router.get("/tenant", requireRole(["tenant"]), async (req, res) => {
     if (status) filters.status = status;
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    // Use aggregation for better performance
+
     const pipeline = [
       { $match: { tenant: req.userData._id, ...filters } },
       { $sort: { createdAt: -1 } },
@@ -219,7 +211,6 @@ router.get("/tenant", requireRole(["tenant"]), async (req, res) => {
   }
 });
 
-// Get specific request details
 router.get("/:id", requireRole(["landlord", "tenant"]), async (req, res) => {
   try {
     const request = await PropertyRequest.findById(req.params.id)
@@ -232,7 +223,6 @@ router.get("/:id", requireRole(["landlord", "tenant"]), async (req, res) => {
       return res.status(404).json({ error: "Request not found" });
     }
 
-    // Check authorization
     const isAuthorized = request.tenant._id.toString() === req.userData._id.toString() ||
                         request.landlord._id.toString() === req.userData._id.toString();
     
@@ -250,7 +240,6 @@ router.get("/:id", requireRole(["landlord", "tenant"]), async (req, res) => {
   }
 });
 
-// Landlord responds to request (approve/reject)
 router.put("/:id/respond", requireRole(["landlord"]), async (req, res) => {
   try {
     const { action, response } = req.body; // action: 'approve' or 'reject'
@@ -291,7 +280,6 @@ router.put("/:id/respond", requireRole(["landlord"]), async (req, res) => {
   }
 });
 
-// Landlord sends agreement to tenant
 router.put("/:id/send-agreement", requireRole(["landlord"]), async (req, res) => {
   try {
     const { agreementId, customTerms } = req.body;
@@ -308,7 +296,6 @@ router.put("/:id/send-agreement", requireRole(["landlord"]), async (req, res) =>
       });
     }
 
-    // Validate agreement belongs to landlord
     if (agreementId) {
       const agreement = await Agreement.findOne({
         _id: agreementId,
@@ -338,7 +325,6 @@ router.put("/:id/send-agreement", requireRole(["landlord"]), async (req, res) =>
   }
 });
 
-// Tenant accepts agreement
 router.put("/:id/accept-agreement", requireRole(["tenant"]), async (req, res) => {
   try {
     const request = await PropertyRequest.findOne({
@@ -370,7 +356,6 @@ router.put("/:id/accept-agreement", requireRole(["tenant"]), async (req, res) =>
   }
 });
 
-// Tenant rejects agreement
 router.put("/:id/reject-agreement", requireRole(["tenant"]), async (req, res) => {
   try {
     const { reason } = req.body;
@@ -387,7 +372,6 @@ router.put("/:id/reject-agreement", requireRole(["tenant"]), async (req, res) =>
       });
     }
 
-    // Reject the entire request - set status to Rejected
     request.status = "Rejected";
     request.landlordResponse = reason 
       ? `Tenant rejected the agreement. Reason: ${reason}` 
@@ -411,7 +395,6 @@ router.put("/:id/reject-agreement", requireRole(["tenant"]), async (req, res) =>
   }
 });
 
-// Landlord completes assignment (assigns property to tenant)
 router.put("/:id/complete-assignment", requireRole(["landlord"]), async (req, res) => {
   try {
     const { leaseStartDate, leaseEndDate, rentAmount, securityDeposit } = req.body;
@@ -428,7 +411,6 @@ router.put("/:id/complete-assignment", requireRole(["landlord"]), async (req, re
       });
     }
 
-    // Complete the assignment
     await request.completeAssignment({
       startDate: leaseStartDate ? new Date(leaseStartDate) : null,
       endDate: leaseEndDate ? new Date(leaseEndDate) : null,
@@ -436,31 +418,26 @@ router.put("/:id/complete-assignment", requireRole(["landlord"]), async (req, re
       securityDeposit: parseFloat(securityDeposit)
     });
 
-    // Update property status
     const property = await Property.findById(request.property._id);
     property.available = false;
     property.status = "Rented";
     property.currentTenant = request.tenant._id;
-    
-    // Only set lease dates if provided (for lease properties)
+
     if (leaseStartDate && leaseEndDate) {
       property.leaseStartDate = new Date(leaseStartDate);
       property.leaseEndDate = new Date(leaseEndDate);
     }
     await property.save();
 
-    // Update tenant's rented property
     const tenant = await User.findById(request.tenant._id);
     tenant.propertyRented = request.property._id;
-    
-    // Create lease object with conditional dates
+
     const leaseData = {
       status: "Active",
       rentAmount: parseFloat(rentAmount),
       securityDeposit: parseFloat(securityDeposit)
     };
-    
-    // Only add lease dates if provided
+
     if (leaseStartDate && leaseEndDate) {
       leaseData.startDate = new Date(leaseStartDate);
       leaseData.endDate = new Date(leaseEndDate);
@@ -485,7 +462,6 @@ router.put("/:id/complete-assignment", requireRole(["landlord"]), async (req, re
   }
 });
 
-// Get request statistics for dashboard
 router.get("/stats/summary", requireRole(["landlord"]), async (req, res) => {
   try {
     const landlordId = req.userData._id;

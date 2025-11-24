@@ -46,13 +46,11 @@ const AgreementDialog = ({
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  // Initialize form data when dialog opens or agreement changes
   useEffect(() => {
     console.log('AgreementDialog useEffect triggered:', { open, mode, agreement: agreement?.title });
     if (open) {
       try {
         if (mode === 'create') {
-          console.log('Setting up create mode');
           setFormData({
             title: "",
             description: "",

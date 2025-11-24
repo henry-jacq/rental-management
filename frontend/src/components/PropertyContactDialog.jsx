@@ -126,9 +126,6 @@ const PropertyContactDialog = ({
           <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
             Send Request
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Express your interest in this property. You can include any questions or specific requirements.
-          </Typography>
           
           <TextField
             fullWidth
